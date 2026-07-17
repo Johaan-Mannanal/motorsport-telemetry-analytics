@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# FastF1 downloads a large local cache of F1 timing/telemetry data.
+# It is regenerated on demand; do not commit it.
+data/cache/
+*.ff1pkl
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Env / secrets
+.env
+
+# OS
+.DS_Store
+
