@@ -92,14 +92,15 @@ def weather_summary_table(weather: pd.DataFrame) -> pd.DataFrame:
     """Aggregate weather into a small summary table for display."""
     if weather is None or weather.empty:
         return pd.DataFrame()
+    # Keep the Value column a single (string) dtype so it serializes cleanly for display.
     return pd.DataFrame(
         {
             "Metric": ["Air temp (°C)", "Track temp (°C)", "Humidity (%)", "Wind (m/s)", "Rainfall"],
             "Value": [
-                round(weather["AirTemp"].mean(), 1),
-                round(weather["TrackTemp"].mean(), 1),
-                round(weather["Humidity"].mean(), 1),
-                round(weather["WindSpeed"].mean(), 1),
+                f"{weather['AirTemp'].mean():.1f}",
+                f"{weather['TrackTemp'].mean():.1f}",
+                f"{weather['Humidity'].mean():.1f}",
+                f"{weather['WindSpeed'].mean():.1f}",
                 "Yes" if bool(weather["Rainfall"].any()) else "No",
             ],
         }

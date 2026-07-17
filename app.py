@@ -103,7 +103,7 @@ def main() -> None:
     tabs = st.tabs(["Lap comparison", "Telemetry", "Track & sectors", "Tyres & weather", "Model"])
 
     with tabs[0]:
-        st.plotly_chart(viz.laptime_comparison(laps_a, laps_b, drv_a, drv_b), use_container_width=True)
+        st.plotly_chart(viz.laptime_comparison(laps_a, laps_b, drv_a, drv_b), width="stretch")
         st.caption("Lap time by lap number (green representative laps).")
 
     with tabs[1]:
@@ -112,10 +112,10 @@ def main() -> None:
             tel_a = dl.fastest_car_telemetry(session, drv_a)
             tel_b = dl.fastest_car_telemetry(session, drv_b)
             st.plotly_chart(viz.delta_time_trace(ta.delta_time(tel_a, tel_b), drv_a, drv_b),
-                            use_container_width=True)
+                            width="stretch")
             for ch in ("Speed", "Throttle", "Brake", "nGear"):
                 st.plotly_chart(viz.channel_trace(ta.channel_comparison(tel_a, tel_b, ch), ch, drv_a, drv_b),
-                                use_container_width=True)
+                                width="stretch")
         except Exception as exc:  # noqa: BLE001
             st.info(f"Telemetry unavailable for this pairing: {exc}")
 
@@ -123,21 +123,21 @@ def main() -> None:
         try:
             pos_a = dl.fastest_position(session, drv_a)
             st.plotly_chart(viz.track_position_map(pos_a, pos_a.get("Speed"), f"{drv_a} fastest lap — speed"),
-                            use_container_width=True)
+                            width="stretch")
         except Exception as exc:  # noqa: BLE001
             st.info(f"Track map unavailable: {exc}")
         if row_a is not None and row_b is not None:
             st.plotly_chart(viz.sector_delta_bar(ta.sector_deltas(row_a, row_b), drv_a, drv_b),
-                            use_container_width=True)
+                            width="stretch")
 
     with tabs[3]:
         cA, cB = st.columns(2)
-        cA.subheader(f"{drv_a} stints"); cA.dataframe(pp.stint_summary(laps_a), use_container_width=True, hide_index=True)
-        cB.subheader(f"{drv_b} stints"); cB.dataframe(pp.stint_summary(laps_b), use_container_width=True, hide_index=True)
+        cA.subheader(f"{drv_a} stints"); cA.dataframe(pp.stint_summary(laps_a), width="stretch", hide_index=True)
+        cB.subheader(f"{drv_b} stints"); cB.dataframe(pp.stint_summary(laps_b), width="stretch", hide_index=True)
         wx = viz.weather_summary_table(dl.session_weather(session))
         if not wx.empty:
             st.subheader("Weather (session average)")
-            st.dataframe(wx, use_container_width=True, hide_index=True)
+            st.dataframe(wx, width="stretch", hide_index=True)
 
     with tabs[4]:
         st.subheader("Tyre-degradation & lap-time model")
@@ -150,8 +150,8 @@ def main() -> None:
             k2.metric("Model MAE (s)", res["model_mae"])
             k3.metric("MAE improvement", f"{res['improvement_mae_pct']}%")
             if res["degradation"]:
-                st.plotly_chart(viz.degradation_bar(res["degradation"]), use_container_width=True)
-                st.dataframe(pd.DataFrame(res["degradation"]), use_container_width=True, hide_index=True)
+                st.plotly_chart(viz.degradation_bar(res["degradation"]), width="stretch")
+                st.dataframe(pd.DataFrame(res["degradation"]), width="stretch", hide_index=True)
             with st.expander("Methodology & limitations"):
                 st.write(f"Train laps: {res['n_train']} · Test laps: {res['n_test']} · "
                          f"{len(res['features'])} features")
