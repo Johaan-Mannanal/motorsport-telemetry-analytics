@@ -133,6 +133,61 @@ def get_drivers(session) -> list[str]:
     return sorted(laps["Driver"].dropna().unique().tolist())
 
 
+# --- Unified accessors -------------------------------------------------------------------
+# These work for both a live FastF1 Session and a bundled offline SampleSession, so the app
+# never has to branch on the data source.
+
+def _is_sample(session) -> bool:
+    from .sample_data import SampleSession
+
+    return isinstance(session, SampleSession)
+
+
+def session_drivers(session) -> list[str]:
+    """Driver abbreviations in the session."""
+    if _is_sample(session):
+        return session.drivers
+    return get_drivers(session)
+
+
+def session_laps(session) -> pd.DataFrame:
+    """All laps in the session (both backends expose ``.laps``)."""
+    return session.laps
+
+
+def session_weather(session) -> Optional[pd.DataFrame]:
+    """Weather data for the session, or ``None``."""
+    if _is_sample(session):
+        return session.weather
+    return getattr(session, "weather_data", None)
+
+
+def fastest_car_telemetry(session, driver: str) -> pd.DataFrame:
+    """Car telemetry (Distance, Speed, Throttle, Brake, nGear) for a driver's fastest lap."""
+    if _is_sample(session):
+        return session.fastest_car_telemetry(driver)
+    return session.laps.pick_drivers(driver).pick_fastest().get_car_data().add_distance()
+
+
+def fastest_position(session, driver: str) -> pd.DataFrame:
+    """Track position (X, Y, Speed) for a driver's fastest lap."""
+    if _is_sample(session):
+        return session.fastest_position(driver)
+    tel = session.laps.pick_drivers(driver).pick_fastest().get_telemetry()
+    return tel[["X", "Y", "Speed"]].reset_index(drop=True)
+
+
+def fastest_lap_row(session, driver: str):
+    """The fastest lap (a pandas Series) for a driver, or ``None``."""
+    if _is_sample(session):
+        return session.fastest_lap_row(driver)
+    laps = session.laps.pick_drivers(driver).dropna(subset=["LapTime"])
+    return None if laps.empty else laps.pick_fastest()
+
+
 def driver_laps(session, driver: str) -> pd.DataFrame:
     """Return all laps for a single driver as a plain DataFrame."""
-    return session.laps.pick_drivers(driver).reset_index(drop=True)
+    laps = session.laps
+    if _is_sample(session):
+        return laps[laps["Driver"] == driver].reset_index(drop=True)
+    return laps.pick_drivers(driver).reset_index(drop=True)
