@@ -40,14 +40,19 @@ def main(year: int, event: str, drv_a: str, drv_b: str) -> None:
     fa, fb = laps.pick_drivers(drv_a).pick_fastest(), laps.pick_drivers(drv_b).pick_fastest()
     tel_a, tel_b = fa.get_car_data().add_distance(), fb.get_car_data().add_distance()
 
+    # Team colours for the two drivers, matching the dashboard.
+    from src import theme
+    ca = theme.team_color(str(la["Team"].iloc[0]) if "Team" in la.columns and len(la) else None, 0)
+    cb = theme.team_color(str(lb["Team"].iloc[0]) if "Team" in lb.columns and len(lb) else None, 1)
+
     # Figures (the same ones the dashboard renders)
     figs = {
-        "laptime_comparison": viz.laptime_comparison(la, lb, drv_a, drv_b),
-        "delta_time": viz.delta_time_trace(ta.delta_time(tel_a, tel_b), drv_a, drv_b),
-        "speed_trace": viz.channel_trace(ta.channel_comparison(tel_a, tel_b, "Speed"), "Speed", drv_a, drv_b),
+        "laptime_comparison": viz.laptime_comparison(la, lb, drv_a, drv_b, ca, cb),
+        "delta_time": viz.delta_time_trace(ta.delta_time(tel_a, tel_b), drv_a, drv_b, cb),
+        "speed_trace": viz.channel_trace(ta.channel_comparison(tel_a, tel_b, "Speed"), "Speed", drv_a, drv_b, ca, cb),
         "track_map": viz.track_position_map(fa.get_telemetry(), fa.get_telemetry().get("Speed"),
-                                            f"{drv_a} fastest lap — speed"),
-        "sector_deltas": viz.sector_delta_bar(ta.sector_deltas(fa, fb), drv_a, drv_b),
+                                            f"{drv_a} fastest lap - speed"),
+        "sector_deltas": viz.sector_delta_bar(ta.sector_deltas(fa, fb), drv_a, drv_b, ca, cb),
     }
 
     res = mdl.evaluate_laptime_model(laps).to_dict()
@@ -56,6 +61,8 @@ def main(year: int, event: str, drv_a: str, drv_b: str) -> None:
 
     for name, fig in figs.items():
         out = ASSETS / f"{name}.png"
+        # Solid dark background so the PNGs read well on GitHub (light or dark).
+        fig.update_layout(paper_bgcolor="#0d1117", plot_bgcolor="#0d1117")
         fig.write_image(str(out), scale=2, width=900, height=380)
         print("wrote", out.relative_to(REPO))
 

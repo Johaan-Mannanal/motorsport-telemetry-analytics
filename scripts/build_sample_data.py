@@ -27,6 +27,8 @@ OUT = REPO / "data" / "sample"
 
 # (year, event, session code, friendly label). Variety of tracks and one qualifying session.
 SESSIONS = [
+    (2024, "British Grand Prix", "R", "2024 British GP (Silverstone) - Race"),
+    (2024, "Japanese Grand Prix", "R", "2024 Japanese GP (Suzuka) - Race"),
     (2023, "Italian Grand Prix", "R", "2023 Italian GP (Monza) - Race"),
     (2023, "Bahrain Grand Prix", "R", "2023 Bahrain GP - Race"),
     (2023, "Monaco Grand Prix", "Q", "2023 Monaco GP - Qualifying"),

@@ -7,9 +7,9 @@ and lap-time model. Built on public data via [FastF1](https://github.com/theOehr
 
 **Live demo:** https://motorsportstelemetryanalytics.streamlit.app
 
-![Speed trace: VER vs LEC, 2023 Italian GP](assets/speed_trace.png)
+![Motorsport Telemetry Analytics dashboard](assets/dashboard.png)
 
-*Speed vs distance around Monza: Verstappen vs Leclerc, fastest race laps (real FastF1 data).*
+*Two-driver comparison with real F1 team colours, delta time, sector splits, and a pace model.*
 
 > The hosted demo ships with a few bundled example sessions (2023 Monza, Bahrain, and Monaco
 > qualifying), because the F1 data service blocks most cloud hosts. Run the app locally to load
