@@ -1,0 +1,60 @@
+{
+  "features": [
+    "TyreLife",
+    "LapNumber",
+    "comp_HARD",
+    "comp_MEDIUM",
+    "drv_ALB",
+    "drv_ALO",
+    "drv_BOT",
+    "drv_GAS",
+    "drv_HAM",
+    "drv_HUL",
+    "drv_LAW",
+    "drv_LEC",
+    "drv_MAG",
+    "drv_NOR",
+    "drv_OCO",
+    "drv_PER",
+    "drv_PIA",
+    "drv_RUS",
+    "drv_SAI",
+    "drv_SAR",
+    "drv_STR",
+    "drv_VER",
+    "drv_ZHO"
+  ],
+  "n_train": 658,
+  "n_test": 220,
+  "baseline_mae": 0.591,
+  "baseline_rmse": 0.745,
+  "model_mae": 0.293,
+  "model_rmse": 0.407,
+  "improvement_mae_pct": 50.4,
+  "degradation": [
+    {
+      "compound": "HARD",
+      "slope_s_per_lap": 0.0253,
+      "r_squared": 0.074,
+      "n_laps": 474
+    },
+    {
+      "compound": "MEDIUM",
+      "slope_s_per_lap": 0.0252,
+      "r_squared": 0.038,
+      "n_laps": 404
+    }
+  ],
+  "notes": [
+    "Single-session model; coefficients describe correlation, not causation.",
+    "Green-lap filter removes in/out, safety-car and traffic laps but is heuristic.",
+    "Driver identity is included, so the model partly memorizes per-driver pace; it is not a generalizable cross-race predictor.",
+    "Weather, track evolution, and fuel mass are only crudely proxied (lap number).",
+    "Random lap split can leak within-stint correlation; treat gains as indicative."
+  ],
+  "session": "Italian Grand Prix 2023 \u2014 Race",
+  "drivers_charted": [
+    "VER",
+    "LEC"
+  ]
+}
