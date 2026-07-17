@@ -5,8 +5,8 @@ thin, typed wrapper that centralizes cache setup and the handful of loads the ap
 """
 from __future__ import annotations
 
-import functools
 import os
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -15,31 +15,43 @@ import pandas as pd
 import fastf1
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CACHE = REPO_ROOT / "data" / "cache"
 
 _cache_enabled = False
 
 
-def enable_cache(cache_dir: Optional[str | Path] = None) -> Path:
-    """Enable FastF1's on-disk cache (idempotent).
+def _default_cache_dir() -> Path:
+    """Pick a writable cache directory.
 
-    Parameters
-    ----------
-    cache_dir:
-        Directory for the cache. Defaults to ``FASTF1_CACHE_DIR`` env var or ``data/cache``.
+    Uses ``FASTF1_CACHE_DIR`` if set, otherwise a temp dir. The repository directory can be
+    read-only on hosted platforms (e.g. Streamlit Cloud), so we do not default to it.
+    """
+    env = os.getenv("FASTF1_CACHE_DIR")
+    if env:
+        return Path(env)
+    return Path(tempfile.gettempdir()) / "fastf1_cache"
+
+
+def enable_cache(cache_dir: Optional[str | Path] = None) -> Optional[Path]:
+    """Enable FastF1's on-disk cache (idempotent, best-effort).
+
+    The cache only speeds things up; if the target directory is not writable the function
+    degrades gracefully and FastF1 fetches without a cache.
 
     Returns
     -------
-    Path
-        The cache directory that was enabled.
+    Path or None
+        The enabled cache directory, or ``None`` if caching could not be enabled.
     """
     global _cache_enabled
-    path = Path(cache_dir or os.getenv("FASTF1_CACHE_DIR") or DEFAULT_CACHE)
-    path.mkdir(parents=True, exist_ok=True)
-    if not _cache_enabled:
-        fastf1.Cache.enable_cache(str(path))
-        _cache_enabled = True
-    return path
+    path = Path(cache_dir) if cache_dir else _default_cache_dir()
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        if not _cache_enabled:
+            fastf1.Cache.enable_cache(str(path))
+            _cache_enabled = True
+        return path
+    except Exception:
+        return None
 
 
 def get_event_schedule(year: int) -> pd.DataFrame:
@@ -55,8 +67,16 @@ def list_events(year: int) -> list[str]:
     return [str(name) for name in schedule["EventName"].tolist()]
 
 
-@functools.lru_cache(maxsize=32)
-def load_session(year: int, event: str, session: str) -> "fastf1.core.Session":
+def _laps_loaded(sess) -> bool:
+    """True if the session actually has lap data (FastF1 can 'load' but fetch nothing)."""
+    try:
+        laps = sess.laps
+    except Exception:
+        return False
+    return laps is not None and len(laps) > 0
+
+
+def load_session(year: int, event: str, session: str, retries: int = 1) -> "fastf1.core.Session":
     """Load a fully-populated FastF1 session (laps, telemetry, weather, results).
 
     Parameters
@@ -67,16 +87,19 @@ def load_session(year: int, event: str, session: str) -> "fastf1.core.Session":
         Event name or round number understood by FastF1 (e.g. ``"Monza"``).
     session:
         Session code: ``"FP1"``, ``"FP2"``, ``"FP3"``, ``"Q"``, ``"S"`` (sprint), ``"R"``.
+    retries:
+        Number of times to retry if the data fetch returns no laps (transient upstream failures).
 
     Returns
     -------
     fastf1.core.Session
-        A loaded session object.
+        A loaded session, guaranteed to contain lap data.
 
     Raises
     ------
     ValueError
-        If the year is implausible or the session cannot be identified.
+        If the year is out of range, the session cannot be identified, or no lap data could be
+        loaded after retrying (e.g. the upstream F1 data service is unreachable or rate-limited).
     """
     if year < 2018 or year > 2100:
         raise ValueError(f"year {year} is outside the supported range (FastF1 telemetry from 2018).")
@@ -85,8 +108,21 @@ def load_session(year: int, event: str, session: str) -> "fastf1.core.Session":
         sess = fastf1.get_session(year, event, session)
     except Exception as exc:  # noqa: BLE001 - surface a clean message to the app
         raise ValueError(f"Could not find session '{session}' for {event} {year}: {exc}") from exc
-    sess.load(laps=True, telemetry=True, weather=True, messages=False)
-    return sess
+
+    last_exc: Optional[Exception] = None
+    for _ in range(max(1, retries + 1)):
+        try:
+            sess.load(laps=True, telemetry=True, weather=True, messages=False)
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+        if _laps_loaded(sess):
+            return sess
+
+    raise ValueError(
+        f"No lap data could be loaded for {event} {year} {session}. The F1 data service may be "
+        f"temporarily unreachable or rate-limited from this host. Try again shortly or pick "
+        f"another session." + (f" ({last_exc})" if last_exc else "")
+    )
 
 
 def get_drivers(session) -> list[str]:
