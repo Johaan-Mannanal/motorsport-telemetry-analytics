@@ -100,14 +100,16 @@ h1, h2, h3, .mt-display { font-family: 'Rajdhani', sans-serif; letter-spacing: .
 .mt-hero p { color: var(--muted); margin: 8px 0 0; font-size: .92rem; }
 
 /* Driver matchup chips */
-.mt-matchup { display:flex; align-items:center; gap:14px; margin: 10px 0 2px; flex-wrap: wrap; }
-.mt-chip { display:flex; align-items:center; gap:9px; background: var(--panel);
-    border:1px solid var(--grid); border-radius:10px; padding:8px 14px; }
-.mt-chip .dot { width:12px; height:12px; border-radius:50%; }
-.mt-chip .abbr { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:1.15rem;
+.mt-matchup { display:flex; align-items:center; gap:14px; margin: 4px 0 22px; flex-wrap: wrap; }
+.mt-chip { display:flex; align-items:center; gap:11px; background: var(--panel);
+    border:1px solid var(--grid); border-radius:12px; padding:10px 18px; min-width:150px; }
+.mt-chip .dot { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
+.mt-chip-txt { display:flex; flex-direction:column; gap:2px; line-height:1.1; }
+.mt-chip .abbr { font-family:'Rajdhani',sans-serif; font-weight:700; font-size:1.25rem;
     letter-spacing:1px; }
 .mt-chip .team { color: var(--muted); font-size:.78rem; }
-.mt-vs { font-family:'Rajdhani',sans-serif; font-weight:700; color: var(--muted); }
+.mt-vs { font-family:'Rajdhani',sans-serif; font-weight:700; color: var(--muted);
+    font-size:1.05rem; padding:0 2px; }
 
 /* Metric cards */
 [data-testid="stMetric"] { background: var(--panel); border:1px solid var(--grid);
@@ -140,7 +142,7 @@ def matchup(abbr_a: str, team_a: str | None, color_a: str,
     """Return HTML for the two-driver matchup chips."""
     def chip(abbr, team, color):
         return (f'<div class="mt-chip"><span class="dot" style="background:{color}"></span>'
-                f'<span><span class="abbr">{abbr}</span><br><span class="team">'
-                f'{team or ""}</span></span></div>')
+                f'<span class="mt-chip-txt"><span class="abbr">{abbr}</span>'
+                f'<span class="team">{team or ""}</span></span></div>')
     return (f'<div class="mt-matchup">{chip(abbr_a, team_a, color_a)}'
             f'<span class="mt-vs">VS</span>{chip(abbr_b, team_b, color_b)}</div>')
