@@ -138,9 +138,14 @@ def get_drivers(session) -> list[str]:
 # never has to branch on the data source.
 
 def _is_sample(session) -> bool:
-    from .sample_data import SampleSession
+    """True for a bundled offline session, False for a live FastF1 session.
 
-    return isinstance(session, SampleSession)
+    Uses duck typing rather than ``isinstance``: on Streamlit Cloud the module watcher can reload
+    ``src`` modules, so a cached SampleSession instance may be an instance of an older copy of the
+    class and ``isinstance`` would wrongly return False. A live FastF1 session's ``.laps`` is a
+    FastF1 ``Laps`` object (has ``pick_drivers``); a sample session's is a plain DataFrame.
+    """
+    return not hasattr(session.laps, "pick_drivers")
 
 
 def session_drivers(session) -> list[str]:
