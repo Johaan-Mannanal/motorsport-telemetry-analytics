@@ -6,7 +6,6 @@ colours (their F1 team colours) so the dashboard reads like a broadcast graphic.
 """
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -49,7 +48,7 @@ def delta_time_trace(delta: pd.DataFrame, name_a: str, name_b: str,
 
 def laptime_comparison(laps_a: pd.DataFrame, laps_b: pd.DataFrame, name_a: str, name_b: str,
                        color_a: str = _A, color_b: str = _B) -> go.Figure:
-    """Lap time vs lap number for two drivers (green laps)."""
+    """Lap time vs lap number for two drivers (all timed laps)."""
     fig = _fig("Lap time by lap")
     fig.add_scatter(x=laps_a["LapNumber"], y=laps_a["LapTimeSeconds"], mode="lines+markers",
                     name=name_a, line=dict(color=color_a, width=2), marker=dict(size=5))
@@ -66,7 +65,7 @@ def sector_delta_bar(sd: pd.DataFrame, name_a: str, name_b: str,
     fig = _fig(f"Sector deltas: {name_b} minus {name_a}")
     colors = [color_b if v > 0 else color_a for v in sd["Delta"].fillna(0)]
     fig.add_bar(x=sd["Sector"], y=sd["Delta"], marker_color=colors,
-                text=[f"{v:+.3f}" for v in sd["Delta"]], textposition="outside")
+                text=["" if pd.isna(v) else f"{v:+.3f}" for v in sd["Delta"]], textposition="outside")
     fig.add_hline(y=0, line=dict(color=theme.MUTED))
     fig.update_yaxes(title="Δt (s)")
     return fig

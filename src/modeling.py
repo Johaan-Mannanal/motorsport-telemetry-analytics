@@ -13,8 +13,6 @@ Limitations are reported alongside the numbers; see :func:`evaluate_laptime_mode
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression

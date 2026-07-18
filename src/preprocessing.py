@@ -8,8 +8,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-# Laps slower than this multiple of a driver's median are treated as non-representative
-# (in/out laps, safety car, traffic) for pace analysis.
+# Laps slower than this multiple of the frame's pooled median lap time are treated as
+# non-representative (in/out laps, safety car, traffic) for pace analysis.
 OUTLIER_LAP_FACTOR = 1.07
 
 

@@ -14,8 +14,6 @@ import pandas as pd
 
 import fastf1
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
 _cache_enabled = False
 
 

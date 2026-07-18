@@ -51,6 +51,7 @@ def delta_time(tel_ref: pd.DataFrame, tel_cmp: pd.DataFrame, n: int = 500) -> pd
     dt_ref = np.gradient(grid) / v_ref
     dt_cmp = np.gradient(grid) / v_cmp
     delta = np.cumsum(dt_cmp - dt_ref)
+    delta -= delta[0]  # anchor the trace at zero at the first shared point
     return pd.DataFrame({"Distance": grid, "DeltaTime": delta})
 
 
@@ -84,7 +85,11 @@ def fastest_lap_summary(laps: pd.DataFrame, driver: str) -> dict:
     """Return a compact summary of a driver's fastest lap in a session."""
     from .preprocessing import clean_laps
 
-    df = clean_laps(laps.pick_drivers(driver) if hasattr(laps, "pick_drivers") else laps)
+    if hasattr(laps, "pick_drivers"):
+        laps = laps.pick_drivers(driver)
+    else:
+        laps = laps[laps["Driver"] == driver] if "Driver" in laps.columns else laps
+    df = clean_laps(laps)
     if df.empty:
         return {"driver": driver, "lap_time_s": None}
     fastest = df.loc[df["LapTimeSeconds"].idxmin()]

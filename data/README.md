@@ -7,7 +7,7 @@ from the official F1 live-timing service and the Ergast/Jolpica archive.
 ## How it works
 - On first use of a given session, FastF1 downloads the data and stores it in a local cache
   directory (default `data/cache/`, configurable via `FASTF1_CACHE_DIR` in `.env`).
-- The cache is **git-ignored** and regenerated automatically — nothing needs to be committed.
+- The cache is **git-ignored** and regenerated automatically: nothing needs to be committed.
 - Subsequent loads of the same session read from the cache and are fast/offline.
 
 ## What a session provides

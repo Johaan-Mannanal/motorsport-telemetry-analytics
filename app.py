@@ -1,4 +1,4 @@
-"""Motorsport Telemetry Analytics — Streamlit dashboard.
+"""Motorsport Telemetry Analytics Streamlit dashboard.
 
 Compare two drivers' fastest laps from a Formula 1 session: speed/throttle/brake/gear traces,
 delta time, sector deltas, a track-position map, tyre strategy, weather, and a transparent
@@ -106,18 +106,18 @@ def main() -> None:
     sa, sb = ta.fastest_lap_summary(laps_a, drv_a), ta.fastest_lap_summary(laps_b, drv_b)
 
     m1, m2, m3 = st.columns(3)
-    m1.metric(f"{drv_a} fastest lap", f"{sa['lap_time_s']:.3f}s" if sa["lap_time_s"] else "—")
-    m2.metric(f"{drv_b} fastest lap", f"{sb['lap_time_s']:.3f}s" if sb["lap_time_s"] else "—")
+    m1.metric(f"{drv_a} fastest lap", f"{sa['lap_time_s']:.3f}s" if sa["lap_time_s"] else "n/a")
+    m2.metric(f"{drv_b} fastest lap", f"{sb['lap_time_s']:.3f}s" if sb["lap_time_s"] else "n/a")
     if sa["lap_time_s"] and sb["lap_time_s"]:
         gap = sb["lap_time_s"] - sa["lap_time_s"]
-        m3.metric("Gap (B − A)", f"{gap:+.3f}s", delta=f"{drv_b if gap > 0 else drv_a} faster",
+        m3.metric("Gap (B − A)", f"{gap:+.3f}s", delta=f"{drv_a if gap > 0 else drv_b} faster",
                   delta_color="off")
 
     tabs = st.tabs(["Lap pace", "Telemetry", "Track & sectors", "Tyres & weather", "Pace model"])
 
     with tabs[0]:
         st.plotly_chart(viz.laptime_comparison(laps_a, laps_b, drv_a, drv_b, color_a, color_b), **CHART)
-        st.caption("Lap time by lap number (green representative laps).")
+        st.caption("Lap time by lap number, all timed laps; pit stops and safety cars appear as spikes.")
 
     with tabs[1]:
         st.caption("Each driver's fastest lap, aligned on a shared distance axis.")
@@ -140,7 +140,7 @@ def main() -> None:
         with t1:
             try:
                 pos_a = dl.fastest_position(session, drv_a)
-                st.plotly_chart(viz.track_position_map(pos_a, pos_a.get("Speed"), f"{drv_a} fastest lap — speed"), **CHART)
+                st.plotly_chart(viz.track_position_map(pos_a, pos_a.get("Speed"), f"{drv_a} fastest lap speed"), **CHART)
             except Exception as exc:  # noqa: BLE001
                 st.info(f"Track map unavailable: {exc}")
         with t2:
@@ -149,8 +149,8 @@ def main() -> None:
 
     with tabs[3]:
         cA, cB = st.columns(2)
-        cA.markdown(f"**{drv_a} — stints**"); cA.dataframe(pp.stint_summary(laps_a), width="stretch", hide_index=True)
-        cB.markdown(f"**{drv_b} — stints**"); cB.dataframe(pp.stint_summary(laps_b), width="stretch", hide_index=True)
+        cA.markdown(f"**{drv_a} stints**"); cA.dataframe(pp.stint_summary(laps_a), width="stretch", hide_index=True)
+        cB.markdown(f"**{drv_b} stints**"); cB.dataframe(pp.stint_summary(laps_b), width="stretch", hide_index=True)
         wx = viz.weather_summary_table(dl.session_weather(session))
         if not wx.empty:
             st.markdown("**Weather (session average)**")

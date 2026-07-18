@@ -11,9 +11,9 @@ and lap-time model. Built on public data via [FastF1](https://github.com/theOehr
 
 *Two-driver comparison with real F1 team colours, delta time, sector splits, and a pace model.*
 
-> The hosted demo ships with a few bundled example sessions (2023 Monza, Bahrain, and Monaco
-> qualifying), because the F1 data service blocks most cloud hosts. Run the app locally to load
-> any live session from 2018 onward.
+> The hosted demo ships with five bundled example sessions (2024 Silverstone and Suzuka races,
+> 2023 Monza and Bahrain races, and 2023 Monaco qualifying), because the F1 data service blocks
+> most cloud hosts. Run the app locally to load any live session from 2018 onward.
 
 ## Why this exists
 Take real time-series sensor data, turn it into analysis that explains *where* and *why* one
@@ -97,7 +97,7 @@ Reference session: **2023 Italian Grand Prix (Monza), Race**, 878 green laps (65
 | **Lap-time model** (linear regression) | **0.293** | **0.407** |
 
 The model roughly **halves the baseline error** (≈50% lower MAE). Tyre degradation at Monza (a
-low-degradation circuit) came out to ~**0.025 s per lap of tyre life** for both HARD and MEDIUM -
+low-degradation circuit) came out to ~**0.025 s per lap of tyre life** for both HARD and MEDIUM,
 with **low R² (0.04–0.07)**, which is honest: at Monza, tyre age alone explains little of the
 lap-to-lap variation (fuel, traffic, and driver pace dominate). Higher-degradation circuits show
 steeper, cleaner slopes.

@@ -67,7 +67,7 @@ def main(year: int, event: str, drv_a: str, drv_b: str) -> None:
         print("wrote", out.relative_to(REPO))
 
     # Verified results
-    res["session"] = f"{session.event['EventName']} {year} — Race"
+    res["session"] = f"{session.event['EventName']} {year} Race"
     res["drivers_charted"] = [drv_a, drv_b]
     (RESULTS / "model_metrics.json").write_text(json.dumps(res, indent=2))
     pd.DataFrame(res["degradation"]).to_csv(RESULTS / "tyre_degradation.csv", index=False)
