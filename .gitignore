@@ -24,3 +24,7 @@ data/cache/
 # OS
 .DS_Store
 
+
+# Web dashboard (web/)
+web/node_modules/
+web/dist/

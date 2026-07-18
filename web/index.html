@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Motorsport Telemetry Analytics</title>
+  <meta name="description" content="Interactive Formula 1 telemetry dashboard: compare two drivers' fastest laps with speed, delta time, sector, tyre, and pace-model analysis." />
+  <meta name="theme-color" content="#0d1117" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <h1>Telemetry <em>Analytics</em></h1>
+      </div>
+      <nav class="top-links">
+        <a href="https://github.com/Johaan-Mannanal/motorsport-telemetry-analytics" target="_blank" rel="noopener">Source ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="controls" aria-label="Session and driver selection">
+      <label>Session
+        <select id="session"></select>
+      </label>
+      <label>Driver A
+        <select id="driverA"></select>
+      </label>
+      <label>Driver B
+        <select id="driverB"></select>
+      </label>
+    </section>
+
+    <section id="matchup" class="matchup" aria-live="polite"></section>
+
+    <section class="metrics">
+      <div class="metric"><span class="metric-k" id="mAk">Driver A fastest</span><span class="metric-v mono" id="mAv">–</span></div>
+      <div class="metric"><span class="metric-k" id="mBk">Driver B fastest</span><span class="metric-v mono" id="mBv">–</span></div>
+      <div class="metric"><span class="metric-k">Gap (B − A)</span><span class="metric-v mono" id="mGap">–</span><span class="metric-sub" id="mGapSub"></span></div>
+    </section>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="pace" role="tab">Lap pace</button>
+      <button class="tab" data-tab="telemetry" role="tab">Telemetry</button>
+      <button class="tab" data-tab="track" role="tab">Track &amp; sectors</button>
+      <button class="tab" data-tab="tyres" role="tab">Tyres &amp; weather</button>
+      <button class="tab" data-tab="model" role="tab">Pace model</button>
+    </nav>
+
+    <section class="panel" id="panel-pace" role="tabpanel">
+      <div id="chart-pace" class="chart"></div>
+      <p class="caption">Lap time by lap number, all timed laps; pit stops and safety cars appear as spikes.</p>
+    </section>
+
+    <section class="panel hidden" id="panel-telemetry" role="tabpanel">
+      <p class="caption">Each driver's fastest lap, aligned on a shared distance axis. Delta time is integrated from the speed traces, so it is an approximation of the true gap.</p>
+      <div id="chart-delta" class="chart"></div>
+      <div class="grid2">
+        <div id="chart-speed" class="chart"></div>
+        <div id="chart-throttle" class="chart"></div>
+        <div id="chart-brake" class="chart"></div>
+        <div id="chart-gear" class="chart"></div>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="panel-track" role="tabpanel">
+      <div class="grid-track">
+        <div id="chart-track" class="chart"></div>
+        <div id="chart-sectors" class="chart"></div>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="panel-tyres" role="tabpanel">
+      <div class="grid2">
+        <div><h3 id="stintsAh" class="subh"></h3><div id="stintsA"></div></div>
+        <div><h3 id="stintsBh" class="subh"></h3><div id="stintsB"></div></div>
+      </div>
+      <h3 class="subh">Weather (session average)</h3>
+      <div id="weather"></div>
+    </section>
+
+    <section class="panel hidden" id="panel-model" role="tabpanel">
+      <h3 class="subh">Tyre degradation &amp; lap-time model</h3>
+      <p class="caption">A transparent baseline comparison on this session's green laps, not a race-strategy oracle.</p>
+      <div class="metrics" id="model-metrics"></div>
+      <div id="chart-degradation" class="chart"></div>
+      <details class="notes"><summary>Methodology &amp; limitations</summary><ul id="model-notes"></ul></details>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <span>Public F1 data via FastF1, pre-processed offline. Unofficial; not affiliated with Formula 1.</span>
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

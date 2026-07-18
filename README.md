@@ -49,7 +49,9 @@ src/
   visualizations.py          Plotly figure builders (also used to export assets)
 tests/                       network-free unit tests (preprocessing, modeling, sample data)
 scripts/build_sample_data.py export the bundled offline sessions from FastF1
+scripts/export_web_data.py   export session JSON for the static web dashboard
 scripts/generate_assets.py   re-generate README charts + verified results
+web/                         static web dashboard (Vite + TypeScript + Plotly.js)
 data/sample/                 bundled offline example sessions (~1 MB, parquet)
 results/                     verified metrics (model_metrics.json, tyre_degradation.csv)
 ```
