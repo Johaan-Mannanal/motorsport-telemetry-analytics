@@ -24,13 +24,13 @@
     "drv_VER",
     "drv_ZHO"
   ],
-  "n_train": 658,
-  "n_test": 220,
-  "baseline_mae": 0.591,
-  "baseline_rmse": 0.745,
-  "model_mae": 0.293,
-  "model_rmse": 0.407,
-  "improvement_mae_pct": 50.4,
+  "n_train": 628,
+  "n_test": 250,
+  "baseline_mae": 0.733,
+  "baseline_rmse": 0.901,
+  "model_mae": 0.396,
+  "model_rmse": 0.553,
+  "improvement_mae_pct": 46.0,
   "degradation": [
     {
       "compound": "HARD",
@@ -48,11 +48,11 @@
   "notes": [
     "Single-session model; coefficients describe correlation, not causation.",
     "Green-lap filter removes in/out, safety-car and traffic laps but is heuristic.",
+    "Held-out laps come from whole unseen driver stints (grouped split), so within-stint correlation cannot leak between train and test.",
     "Driver identity is included, so the model partly memorizes per-driver pace; it is not a generalizable cross-race predictor.",
-    "Weather, track evolution, and fuel mass are only crudely proxied (lap number).",
-    "Random lap split can leak within-stint correlation; treat gains as indicative."
+    "Weather, track evolution, and fuel mass are only crudely proxied (lap number)."
   ],
-  "session": "Italian Grand Prix 2023 \u2014 Race",
+  "session": "Italian Grand Prix 2023 Race",
   "drivers_charted": [
     "VER",
     "LEC"

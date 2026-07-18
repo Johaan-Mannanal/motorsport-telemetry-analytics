@@ -129,11 +129,17 @@ function activeTab(): string {
   return document.querySelector<HTMLButtonElement>('.tab.active')!.dataset.tab!;
 }
 
+function syncUrl(): void {
+  const q = new URLSearchParams({ session: state.slug, a: state.a, b: state.b });
+  history.replaceState(null, '', `?${q.toString()}`);
+}
+
 function rerender(): void {
   renderMatchup();
   renderMetrics();
   state.renderedTabs.clear();
   renderTab(activeTab());
+  syncUrl();
 }
 
 async function selectSession(slug: string): Promise<void> {
@@ -152,6 +158,14 @@ async function selectSession(slug: string): Promise<void> {
 async function init(): Promise<void> {
   state.sessions = await loadIndex();
   options($('session'), state.sessions.map((s) => ({ value: s.slug, label: s.label })));
+
+  // Shareable URLs: ?session=<slug>&a=<drv>&b=<drv>
+  const q = new URLSearchParams(location.search);
+  const wantSlug = q.get('session');
+  state.a = q.get('a') ?? '';
+  state.b = q.get('b') ?? '';
+  const initial = state.sessions.find((s) => s.slug === wantSlug)?.slug ?? state.sessions[0].slug;
+  ($('session') as HTMLSelectElement).value = initial;
 
   $('session').addEventListener('change', (e) => {
     void selectSession((e.target as HTMLSelectElement).value);
@@ -176,7 +190,7 @@ async function init(): Promise<void> {
     });
   });
 
-  await selectSession(state.sessions[0].slug);
+  await selectSession(initial);
 }
 
 void init().catch((err) => {

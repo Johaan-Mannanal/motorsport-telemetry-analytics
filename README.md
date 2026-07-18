@@ -87,18 +87,20 @@ A deliberately **transparent** data-science component, not a strategy oracle:
    "seconds lost per lap of tyre life."
 2. **Lap-time model**: linear regression on tyre age, lap number (a fuel-burn proxy), one-hot
    compound, and one-hot driver, compared against a **baseline** that predicts the mean lap time.
-   Evaluated on a held-out 25% split (seed 42), reporting MAE and RMSE.
+   Evaluated on **whole held-out driver stints** (GroupShuffleSplit, 25%, seed 42) so laps from
+   the same stint never appear in both training and testing; reporting MAE and RMSE.
 
 ## Verified results
 Reproduce with `python scripts/generate_assets.py` (writes [`results/model_metrics.json`](results/model_metrics.json)).
-Reference session: **2023 Italian Grand Prix (Monza), Race**, 878 green laps (658 train / 220 test).
+Reference session: **2023 Italian Grand Prix (Monza), Race**, 878 green laps
+(628 train / 250 test, split by whole driver stints).
 
 | Model | MAE (s) | RMSE (s) |
 |-------|---------|----------|
-| Baseline (predict mean lap time) | 0.591 | 0.745 |
-| **Lap-time model** (linear regression) | **0.293** | **0.407** |
+| Baseline (predict mean lap time) | 0.733 | 0.901 |
+| **Lap-time model** (linear regression) | **0.396** | **0.553** |
 
-The model roughly **halves the baseline error** (≈50% lower MAE). Tyre degradation at Monza (a
+On laps from entirely unseen stints, the model cuts the baseline error by **46%**. Tyre degradation at Monza (a
 low-degradation circuit) came out to ~**0.025 s per lap of tyre life** for both HARD and MEDIUM,
 with **low R² (0.04–0.07)**, which is honest: at Monza, tyre age alone explains little of the
 lap-to-lap variation (fuel, traffic, and driver pace dominate). Higher-degradation circuits show
@@ -109,7 +111,8 @@ steeper, cleaner slopes.
 - The lap-time model includes **driver identity**, so it partly memorizes per-driver pace: it is
   **not** a generalizable cross-race predictor.
 - Green-lap filtering is a heuristic; weather, track evolution, and fuel mass are only crudely
-  proxied. A random lap split can leak within-stint correlation, so treat the gain as indicative.
+  proxied. The held-out set is grouped by driver stint, so within-stint correlation cannot leak
+  between train and test.
 - This is an analysis tool, **not** a replacement for a race engineer's judgment.
 
 ## Deploy

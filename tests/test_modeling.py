@@ -7,10 +7,15 @@ from src import telemetry_analysis as ta
 
 
 def _degrading_laps(n_per=25, slope=0.05, base=90.0):
-    """Two compounds with a known lap-time-vs-tyre-life slope, plus mild noise."""
+    """Four stints across two compounds with a known lap-time slope, plus mild noise.
+
+    Two stints per compound so the grouped (stint-held-out) evaluation always keeps each
+    compound represented in training.
+    """
     rng = np.random.default_rng(1)
     rows = []
-    for stint, (comp, off) in enumerate([("MEDIUM", 0.0), ("HARD", 0.6)], start=1):
+    stints = [("MEDIUM", 0.0), ("HARD", 0.6), ("MEDIUM", 0.05), ("HARD", 0.65)]
+    for stint, (comp, off) in enumerate(stints, start=1):
         for age in range(1, n_per + 1):
             lt = base + off + slope * age + rng.normal(0, 0.1)
             rows.append(

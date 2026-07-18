@@ -82,6 +82,8 @@ body {
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .grid-track { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; align-items: start; }
 .caption { color: var(--faint); font-size: 0.82rem; margin: 4px 0 14px; }
+.demo-note { margin: -4px 0 12px; }
+.demo-note a { color: var(--muted); text-decoration: underline; }
 .subh { font-family: var(--display); text-transform: uppercase; letter-spacing: 0.5px;
   font-size: 1rem; margin: 14px 0 8px; }
 

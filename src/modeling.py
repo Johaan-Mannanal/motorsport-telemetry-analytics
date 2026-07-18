@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 
 from .preprocessing import representative_laps
 
@@ -107,11 +107,14 @@ def tyre_degradation(laps: pd.DataFrame, min_laps: int = 6) -> list[DegradationR
     return sorted(results, key=lambda r: r.compound)
 
 
-def build_laptime_dataset(laps: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, list[str]]:
-    """Build a feature matrix and target (lap time, s) from green laps.
+def build_laptime_dataset(
+    laps: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.Series, pd.Series, list[str]]:
+    """Build a feature matrix, target (lap time, s), and stint groups from green laps.
 
     Features: tyre life, lap number (a proxy for fuel load burning off), one-hot compound, and
-    one-hot driver (to absorb car/driver pace differences).
+    one-hot driver (to absorb car/driver pace differences). Groups identify each driver stint so
+    the evaluation can hold out whole stints rather than random laps.
     """
     df = representative_laps(laps)
     if df.empty:
@@ -123,19 +126,24 @@ def build_laptime_dataset(laps: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, 
     drivers = pd.get_dummies(df["Driver"].astype(str), prefix="drv")
     feat = pd.concat([feat, compounds, drivers], axis=1)
     y = df["LapTimeSeconds"]
-    return feat, y, list(feat.columns)
+    groups = df["Driver"].astype(str) + "-" + df["Stint"].astype(str)
+    return feat, y, groups, list(feat.columns)
 
 
 def evaluate_laptime_model(laps: pd.DataFrame, random_state: int = RANDOM_SEED) -> LapTimeModelResult:
     """Fit the lap-time model and compare it to a mean-lap-time baseline on a held-out split.
 
-    Returns a :class:`LapTimeModelResult` with MAE/RMSE for both, plus per-compound degradation
-    and explicit limitations. Requires enough green laps to form a train/test split.
+    The held-out set is chosen by driver stint (GroupShuffleSplit), so no laps from the same
+    stint appear in both training and testing. Returns a :class:`LapTimeModelResult` with
+    MAE/RMSE for both, plus per-compound degradation and explicit limitations.
     """
-    X, y, feats = build_laptime_dataset(laps)
+    X, y, groups, feats = build_laptime_dataset(laps)
     if len(X) < 20:
         raise ValueError(f"not enough green laps to evaluate a model (have {len(X)}, need >= 20)")
-    X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, random_state=random_state)
+    splitter = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=random_state)
+    tr_idx, te_idx = next(splitter.split(X, y, groups=groups))
+    X_tr, X_te = X.iloc[tr_idx], X.iloc[te_idx]
+    y_tr, y_te = y.iloc[tr_idx], y.iloc[te_idx]
 
     # Baseline: predict the training mean lap time for every test lap.
     baseline_pred = np.full(len(y_te), float(y_tr.mean()))
@@ -150,10 +158,11 @@ def evaluate_laptime_model(laps: pd.DataFrame, random_state: int = RANDOM_SEED) 
     notes = [
         "Single-session model; coefficients describe correlation, not causation.",
         "Green-lap filter removes in/out, safety-car and traffic laps but is heuristic.",
+        "Held-out laps come from whole unseen driver stints (grouped split), so within-stint "
+        "correlation cannot leak between train and test.",
         "Driver identity is included, so the model partly memorizes per-driver pace; it is not a "
         "generalizable cross-race predictor.",
         "Weather, track evolution, and fuel mass are only crudely proxied (lap number).",
-        "Random lap split can leak within-stint correlation; treat gains as indicative.",
     ]
     return LapTimeModelResult(
         features=feats,
