@@ -5,15 +5,15 @@ and two drivers, then compare their fastest laps: speed/throttle/brake/gear trac
 sector deltas, a track-position map, tyre strategy, weather, and a transparent tyre-degradation
 and lap-time model. Built on public data via [FastF1](https://github.com/theOehrly/Fast-F1).
 
-**Live demo:** https://motorsportstelemetryanalytics.streamlit.app
+**Live demo:** https://motorsport-telemetry-analytics.vercel.app
 
 ![Motorsport Telemetry Analytics dashboard](assets/dashboard.png)
 
 *Two-driver comparison with real F1 team colours, delta time, sector splits, and a pace model.*
 
-> The hosted demo ships with five bundled example sessions (2024 Silverstone and Suzuka races,
-> 2023 Monza and Bahrain races, and 2023 Monaco qualifying), because the F1 data service blocks
-> most cloud hosts. Run the app locally to load any live session from 2018 onward.
+> The hosted demo is a static web app (`web/`) over five bundled example sessions: the 2024
+> Silverstone and Suzuka races, the 2023 Monza and Bahrain races, and 2023 Monaco qualifying.
+> Run the Streamlit app locally to load any live session from 2018 onward.
 
 ## Why this exists
 Take real time-series sensor data, turn it into analysis that explains *where* and *why* one
@@ -113,10 +113,10 @@ steeper, cleaner slopes.
 - This is an analysis tool, **not** a replacement for a race engineer's judgment.
 
 ## Deploy
-Deployed free on [Streamlit Community Cloud](https://streamlit.io/cloud) from `app.py`. Two notes
-for reproducing the deploy: set the Python version to **3.13** in the app's advanced settings
-(FastF1 3.8 predates 3.14), and remember the hosted app uses the **bundled** sessions since the F1
-data service blocks cloud hosts.
+The hosted demo is the static dashboard in `web/` (Vite + TypeScript + Plotly.js), deployed on
+Vercel with the project root set to `web/`. It consumes JSON pre-exported by
+`scripts/export_web_data.py`, so it needs no Python backend and loads instantly. The Streamlit
+app (`app.py`) is for local use, where FastF1 can fetch any live session.
 
 ## Future plans
 - Add more bundled example sessions and one more analysis view (e.g., driver-consistency).
