@@ -85,23 +85,6 @@ export function trackMap(el: El, d: DriverData, name: string): void {
   }], layout);
 }
 
-export function sectors(el: El, a: DriverData, b: DriverData, nameA: string, nameB: string,
-                        colA: string, colB: string): void {
-  const keys = ['s1', 's2', 's3'] as const;
-  const deltas = keys.map((k) => {
-    const sa = a.fastest.sectors[k], sb = b.fastest.sectors[k];
-    return sa != null && sb != null ? +(sb - sa).toFixed(3) : null;
-  });
-  const layout = baseLayout(`Sector deltas: ${nameB} minus ${nameA}`);
-  layout.yaxis = { ...layout.yaxis, title: { text: 'Δt (s)' } };
-  react(el, [{
-    x: ['S1', 'S2', 'S3'], y: deltas, type: 'bar',
-    marker: { color: deltas.map((v) => (v ?? 0) > 0 ? colB : colA) },
-    text: deltas.map((v) => (v == null ? '' : (v > 0 ? '+' : '') + v.toFixed(3))),
-    textposition: 'outside',
-  }], layout);
-}
-
 export function degradation(el: El, session: SessionData): void {
   const deg = session.model?.degradation ?? [];
   const layout = baseLayout('Tyre degradation (s lost per lap of tyre life)');

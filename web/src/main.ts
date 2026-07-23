@@ -2,7 +2,7 @@
 
 import * as charts from './charts';
 import { loadIndex, loadSession, type DriverData, type SessionData, type SessionRef } from './data';
-import { driverColors } from './theme';
+import { driverColors, hexAlpha } from './theme';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -61,6 +61,36 @@ function renderMatchup(): void {
   $('session-sub').textContent = state.data!.label;
 }
 
+function renderSectors(): void {
+  const [colA, colB] = colors();
+  const A = driver(state.a), B = driver(state.b);
+  const keys = ['s1', 's2', 's3'] as const;
+  const fmt = (v: number | null) => (v != null ? v.toFixed(3) : '–');
+  const rows = keys.map((k, i) => {
+    const sa = A.fastest.sectors[k], sb = B.fastest.sectors[k];
+    let chip = '', aWin = '', bWin = '';
+    if (sa != null && sb != null) {
+      const d = sb - sa;                       // +ve = B slower = A faster (same as the old chart)
+      const col = d > 0 ? colA : colB;         // chip carries the FASTER driver's color
+      aWin = d > 0 ? ` style="box-shadow: inset 3px 0 0 ${colA}"` : '';
+      bWin = d < 0 ? ` style="box-shadow: inset 3px 0 0 ${colB}"` : '';
+      chip = `<span class="t-chip" style="color:${col}; background:${hexAlpha(col, 0.15)}">${d >= 0 ? '+' : ''}${d.toFixed(3)}</span>`;
+    }
+    return `<div class="t-row">
+      <span class="t-k mono">S${i + 1}</span>
+      <span class="t-v mono"${aWin}>${fmt(sa)}</span>
+      <span class="t-v mono"${bWin}>${fmt(sb)}</span>
+      <span class="t-d">${chip}</span>
+    </div>`;
+  }).join('');
+  $('timing').innerHTML = `<div class="t-row t-head">
+    <span class="t-k"></span>
+    <span class="t-v mono">${esc(state.a)}</span>
+    <span class="t-v mono">${esc(state.b)}</span>
+    <span class="t-d"></span>
+  </div>${rows}`;
+}
+
 function colors(): [string, string] {
   return driverColors(driver(state.a).team, driver(state.b).team);
 }
@@ -89,7 +119,7 @@ function renderTab(tab: string): void {
       break;
     case 'track':
       charts.trackMap('chart-track', A, state.a);
-      charts.sectors('chart-sectors', A, B, state.a, state.b, colA, colB);
+      renderSectors();
       break;
     case 'tyres': {
       const stintCols: [string, string][] = [['Stint', 'Stint'], ['Compound', 'Compound'],
