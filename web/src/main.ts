@@ -6,6 +6,21 @@ import { compoundColor, compoundText, driverColors, hexAlpha } from './theme';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Five lights on, hold, lights out — once per page load. */
+async function lightsOut(): Promise<void> {
+  const main = document.querySelector('main')!;
+  if (REDUCED) { main.classList.remove('preload'); return; }
+  const lights = Array.from(document.querySelectorAll('.lights i'));
+  for (const l of lights) { l.classList.add('on'); await sleep(180); }
+  await sleep(500);
+  lights.forEach((l) => l.classList.remove('on'));
+  main.classList.remove('preload');
+  main.classList.add('reveal');
+}
+
 const state = {
   sessions: [] as SessionRef[],
   slug: '',
@@ -182,6 +197,13 @@ function rerender(): void {
   renderMatchup();
   state.renderedTabs.clear();
   renderTab(activeTab());
+  // Restart the active panel's fade so session/driver switches read as a quiet crossfade.
+  const activePanel = document.querySelector<HTMLElement>('.panel:not(.hidden)');
+  if (activePanel && !REDUCED) {
+    activePanel.style.animation = 'none';
+    void activePanel.offsetHeight;   // reflow to reset the animation
+    activePanel.style.animation = '';
+  }
   syncUrl();
 }
 
@@ -233,10 +255,13 @@ async function init(): Promise<void> {
     });
   });
 
+  const lightsDone = lightsOut();
   await selectSession(initial);
+  await lightsDone;
 }
 
 void init().catch((err) => {
-  document.querySelector('main')!.innerHTML =
-    `<p class="caption">Failed to load session data: ${esc(String(err))}</p>`;
+  const main = document.querySelector('main')!;
+  main.classList.remove('preload');
+  main.innerHTML = `<p class="caption">Failed to load session data: ${esc(String(err))}</p>`;
 });
