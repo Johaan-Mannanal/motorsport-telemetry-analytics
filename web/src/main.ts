@@ -154,12 +154,13 @@ function renderTab(tab: string): void {
         box.innerHTML = '<p class="caption">Not enough green laps in this session to fit the model.</p>';
         break;
       }
-      box.innerHTML = [
-        ['Baseline MAE', `${m.baseline_mae.toFixed(3)}s`],
-        ['Model MAE', `${m.model_mae.toFixed(3)}s`],
-        ['Improvement', m.improvement_mae_pct != null ? `${m.improvement_mae_pct.toFixed(0)}%` : 'n/a'],
-        ['Train / test laps', `${m.n_train} / ${m.n_test}`],
-      ].map(([k, v]) => `<div class="metric"><span class="metric-k">${k}</span><span class="metric-v mono">${v}</span></div>`).join('');
+      box.innerHTML = ([
+        ['Baseline MAE', `${m.baseline_mae.toFixed(3)}s`, ''],
+        ['Model MAE', `${m.model_mae.toFixed(3)}s`, ''],
+        ['Improvement', m.improvement_mae_pct != null ? `${m.improvement_mae_pct.toFixed(0)}%` : 'n/a', ' stat-accent'],
+        ['Train / test laps', `${m.n_train} / ${m.n_test}`, ''],
+      ] as [string, string, string][]).map(([k, v, cls]) =>
+        `<div class="stat${cls}"><span class="stat-k">${k}</span><span class="stat-v">${v}</span></div>`).join('');
       charts.degradation('chart-degradation', state.data!);
       $('model-notes').innerHTML = m.notes.map((n) => `<li>${esc(n)}</li>`).join('');
       break;
