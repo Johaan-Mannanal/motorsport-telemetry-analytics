@@ -70,17 +70,21 @@ export function driverColors(teamA?: string | null, teamB?: string | null): [str
   return [a, b];
 }
 
-/** Base Plotly layout matching the dark theme. */
+/** Base Plotly layout: recessive grid, left-aligned muted titles, unified crosshair hover. */
 export function baseLayout(title: string, height = 340): Partial<Layout> {
+  const tickfont = { family: "'JetBrains Mono', ui-monospace, monospace", size: 11, color: FAINT };
   return {
-    title: { text: title, font: { color: INK, size: 16 } },
+    title: { text: title.toUpperCase(), font: { color: MUTED, size: 12 }, x: 0, xanchor: 'left' },
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     font: { color: INK, family: 'Inter, system-ui, sans-serif', size: 13 },
-    xaxis: { gridcolor: GRID, zerolinecolor: GRID, linecolor: GRID },
-    yaxis: { gridcolor: GRID, zerolinecolor: GRID, linecolor: GRID },
-    legend: { bgcolor: 'rgba(0,0,0,0)' },
-    margin: { l: 56, r: 20, t: 48, b: 44 },
+    xaxis: { gridcolor: GRID, zeroline: false, linecolor: 'rgba(0,0,0,0)', tickfont,
+             showspikes: true, spikecolor: FAINT, spikethickness: 1, spikedash: 'dot', spikemode: 'across' },
+    yaxis: { gridcolor: GRID, zeroline: false, linecolor: 'rgba(0,0,0,0)', tickfont },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: { size: 10, color: FAINT } },
+    hovermode: 'x unified',
+    hoverlabel: { bgcolor: PANEL2, bordercolor: '#2e333b', font: { color: INK, family: 'Inter, system-ui, sans-serif', size: 12 } },
+    margin: { l: 56, r: 52, t: 40, b: 44 },
     height,
   };
 }
