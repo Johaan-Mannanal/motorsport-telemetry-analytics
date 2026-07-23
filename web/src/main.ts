@@ -2,7 +2,7 @@
 
 import * as charts from './charts';
 import { loadIndex, loadSession, type DriverData, type SessionData, type SessionRef } from './data';
-import { driverColors, hexAlpha } from './theme';
+import { compoundColor, compoundText, driverColors, hexAlpha } from './theme';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -91,17 +91,39 @@ function renderSectors(): void {
   </div>${rows}`;
 }
 
+function renderStints(): void {
+  const A = driver(state.a), B = driver(state.b);
+  const maxLap = Math.max(1, ...A.stints.map((s) => s.EndLap), ...B.stints.map((s) => s.EndLap));
+  const lane = (code: string, d: DriverData) => {
+    const segs = d.stints.map((s) => {
+      const left = ((s.StartLap - 1) / maxLap) * 100;
+      const width = ((s.EndLap - s.StartLap + 1) / maxLap) * 100;
+      return `<span class="seg" title="${esc(`${s.Compound}: laps ${s.StartLap}–${s.EndLap}`)}"
+        style="left:${left}%; width:${width}%; background:${compoundColor(s.Compound)}; color:${compoundText(s.Compound)}">
+        <span class="seg-label mono">${esc(`${s.Compound} · ${s.Laps}`)}</span></span>`;
+    }).join('');
+    return `<div class="lane"><span class="lane-k mono">${esc(code)}</span><div class="lane-track">${segs}</div></div>`;
+  };
+  const tickVals = [1, Math.round(maxLap * 0.25), Math.round(maxLap * 0.5), Math.round(maxLap * 0.75), maxLap];
+  const ticks = tickVals
+    .filter((v, i, arr) => arr.indexOf(v) === i)
+    .map((v) => `<span class="tick mono" style="left:${((v - 1) / maxLap) * 100}%">${v}</span>`).join('');
+  $('stints').innerHTML = lane(state.a, A) + lane(state.b, B) + `<div class="lane-axis">${ticks}</div>`;
+}
+
+function renderWeather(): void {
+  const w = state.data!.weather;
+  $('weather').innerHTML = w
+    ? ([['Air', `${w.airTemp}°C`], ['Track', `${w.trackTemp}°C`], ['Humidity', `${w.humidity}%`],
+        ['Wind', `${w.windSpeed} m/s`], ['Rain', w.rain ? 'Yes' : 'No']] as [string, string][])
+        .map(([k, v]) => `<div class="stat"><span class="stat-k">${k}</span><span class="stat-v">${v}</span></div>`).join('')
+    : '<p class="caption">No weather data.</p>';
+}
+
 function colors(): [string, string] {
   return driverColors(driver(state.a).team, driver(state.b).team);
 }
 
-function table(rows: Record<string, unknown>[], cols: [string, string][]): string {
-  if (!rows.length) return '<p class="caption">No data.</p>';
-  const head = cols.map(([, label]) => `<th>${esc(label)}</th>`).join('');
-  const body = rows.map((r) =>
-    `<tr>${cols.map(([k]) => `<td>${esc(String(r[k] ?? ''))}</td>`).join('')}</tr>`).join('');
-  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
-}
 
 function renderTab(tab: string): void {
   const [colA, colB] = colors();
@@ -121,23 +143,10 @@ function renderTab(tab: string): void {
       charts.trackMap('chart-track', A, state.a);
       renderSectors();
       break;
-    case 'tyres': {
-      const stintCols: [string, string][] = [['Stint', 'Stint'], ['Compound', 'Compound'],
-        ['Laps', 'Laps'], ['StartLap', 'Start'], ['EndLap', 'End']];
-      $('stintsAh').textContent = `${state.a} stints`;
-      $('stintsBh').textContent = `${state.b} stints`;
-      $('stintsA').innerHTML = table(A.stints, stintCols);
-      $('stintsB').innerHTML = table(B.stints, stintCols);
-      const w = state.data!.weather;
-      $('weather').innerHTML = w
-        ? table([
-            { k: 'Air temp (°C)', v: w.airTemp }, { k: 'Track temp (°C)', v: w.trackTemp },
-            { k: 'Humidity (%)', v: w.humidity }, { k: 'Wind (m/s)', v: w.windSpeed },
-            { k: 'Rainfall', v: w.rain ? 'Yes' : 'No' },
-          ], [['k', 'Metric'], ['v', 'Value']])
-        : '<p class="caption">No weather data.</p>';
+    case 'tyres':
+      renderStints();
+      renderWeather();
       break;
-    }
     case 'model': {
       const m = state.data!.model;
       const box = $('model-metrics');
