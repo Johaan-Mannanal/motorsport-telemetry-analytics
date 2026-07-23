@@ -1,12 +1,38 @@
 /** Shared visual tokens and F1 team colours (mirrors src/theme.py). */
 import type { Config, Layout } from 'plotly.js';
 
-export const BG = '#0d1117';
-export const PANEL = '#141a22';
-export const GRID = '#2a323d';
-export const INK = '#e6edf3';
-export const MUTED = '#9aa7b4';
-export const ACCENT = '#ff1801';
+export const BG = '#0a0b0d';
+export const PANEL = '#111317';
+export const PANEL2 = '#171a1f';
+export const GRID = '#23272e';
+export const INK = '#e8eaed';
+export const MUTED = '#98a0a8';
+export const FAINT = '#6a7178';
+export const ACCENT = '#e10600';
+
+/** Tyre compound colors (single source; used by stint bars and the degradation chart). */
+export const COMPOUND_COLORS: Record<string, string> = {
+  SOFT: '#ff2d55',
+  MEDIUM: '#ffd60a',
+  HARD: '#e8eaed',
+  INTERMEDIATE: '#30d158',
+  WET: '#0a84ff',
+};
+
+export function compoundColor(compound: string): string {
+  return COMPOUND_COLORS[compound.toUpperCase()] ?? MUTED;
+}
+
+/** Text color that stays readable on a compound-colored fill. */
+export function compoundText(compound: string): string {
+  return ['MEDIUM', 'HARD'].includes(compound.toUpperCase()) ? BG : INK;
+}
+
+/** '#rrggbb' + alpha -> 'rgba(...)'. */
+export function hexAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
 
 const TEAM_COLORS: Record<string, string> = {
   'red bull': '#3671C6',
