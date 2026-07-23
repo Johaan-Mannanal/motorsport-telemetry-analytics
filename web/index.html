@@ -16,7 +16,7 @@
   <header class="top">
     <div class="wrap top-inner">
       <div class="brand">
-        <span class="brand-mark"></span>
+        <span class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         <h1>Telemetry <em>Analytics</em></h1>
       </div>
       <nav class="top-links">
@@ -38,15 +38,9 @@
       </label>
     </section>
 
-    <p class="caption demo-note">Five bundled public-demo sessions. The <a href="https://github.com/Johaan-Mannanal/motorsport-telemetry-analytics">local Streamlit app</a> loads any session from 2018 onward.</p>
-
     <section id="matchup" class="matchup" aria-live="polite"></section>
-
-    <section class="metrics">
-      <div class="metric"><span class="metric-k" id="mAk">Driver A fastest</span><span class="metric-v mono" id="mAv">–</span></div>
-      <div class="metric"><span class="metric-k" id="mBk">Driver B fastest</span><span class="metric-v mono" id="mBv">–</span></div>
-      <div class="metric"><span class="metric-k">Gap (B − A)</span><span class="metric-v mono" id="mGap">–</span><span class="metric-sub" id="mGapSub"></span></div>
-    </section>
+    <p class="session-sub" id="session-sub"></p>
+    <p class="caption demo-note">Five bundled public-demo sessions. The <a href="https://github.com/Johaan-Mannanal/motorsport-telemetry-analytics">local Streamlit app</a> loads any session from 2018 onward.</p>
 
     <nav class="tabs" role="tablist">
       <button class="tab active" data-tab="pace" role="tab">Lap pace</button>

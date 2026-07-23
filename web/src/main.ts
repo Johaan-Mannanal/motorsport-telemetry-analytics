@@ -30,35 +30,39 @@ function driver(code: string): DriverData {
   return state.data!.drivers[code];
 }
 
+function fmtLap(sec: number | null): string {
+  return sec != null ? `${sec.toFixed(3)}s` : 'n/a';
+}
+
 function renderMatchup(): void {
   const [colA, colB] = colors();
-  const chip = (code: string, col: string) => {
-    const team = driver(code).team ?? '';
-    return `<div class="chip"><span class="dot" style="background:${col}"></span>
-      <span class="txt"><span class="abbr">${esc(code)}</span><span class="team">${esc(team)}</span></span></div>`;
-  };
-  $('matchup').innerHTML = `${chip(state.a, colA)}<span class="vs">VS</span>${chip(state.b, colB)}`;
+  const A = driver(state.a), B = driver(state.b);
+  const chip = (code: string, d: DriverData, col: string, side: 'a' | 'b') => `
+    <div class="chip chip-${side}" style="--team:${col}">
+      <span class="chip-bar"></span>
+      <span class="chip-txt">
+        <span class="abbr">${esc(code)}</span>
+        <span class="team">${esc(d.team ?? '')}</span>
+        <span class="lap">${fmtLap(d.fastest.sec)}</span>
+      </span>
+    </div>`;
+  const fa = A.fastest.sec, fb = B.fastest.sec;
+  let center = `<div class="gap"><span class="gap-v">n/a</span></div>`;
+  if (fa != null && fb != null) {
+    const gap = fb - fa;
+    const winner = gap > 0 ? state.a : state.b;
+    const winCol = gap > 0 ? colA : colB;
+    center = `<div class="gap">
+      <span class="gap-v">${gap >= 0 ? '+' : ''}${gap.toFixed(3)}s</span>
+      <span class="gap-sub" style="color:${winCol}">${gap > 0 ? '◀' : '▶'} ${esc(winner)} faster</span>
+    </div>`;
+  }
+  $('matchup').innerHTML = chip(state.a, A, colA, 'a') + center + chip(state.b, B, colB, 'b');
+  $('session-sub').textContent = state.data!.label;
 }
 
 function colors(): [string, string] {
   return driverColors(driver(state.a).team, driver(state.b).team);
-}
-
-function renderMetrics(): void {
-  const fa = driver(state.a).fastest.sec;
-  const fb = driver(state.b).fastest.sec;
-  $('mAk').textContent = `${state.a} fastest lap`;
-  $('mBk').textContent = `${state.b} fastest lap`;
-  $('mAv').textContent = fa != null ? `${fa.toFixed(3)}s` : 'n/a';
-  $('mBv').textContent = fb != null ? `${fb.toFixed(3)}s` : 'n/a';
-  if (fa != null && fb != null) {
-    const gap = fb - fa;
-    $('mGap').textContent = `${gap >= 0 ? '+' : ''}${gap.toFixed(3)}s`;
-    $('mGapSub').textContent = `${gap > 0 ? state.a : state.b} faster`;
-  } else {
-    $('mGap').textContent = 'n/a';
-    $('mGapSub').textContent = '';
-  }
 }
 
 function table(rows: Record<string, unknown>[], cols: [string, string][]): string {
@@ -136,7 +140,6 @@ function syncUrl(): void {
 
 function rerender(): void {
   renderMatchup();
-  renderMetrics();
   state.renderedTabs.clear();
   renderTab(activeTab());
   syncUrl();
