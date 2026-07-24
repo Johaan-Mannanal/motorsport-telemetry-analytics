@@ -33,7 +33,7 @@ const state = {
 function esc(s: string): string {
   const d = document.createElement('span');
   d.textContent = s;
-  return d.innerHTML;
+  return d.innerHTML.replaceAll('"', '&quot;');
 }
 
 function options(sel: HTMLSelectElement, values: { value: string; label: string }[], keep?: string): void {
@@ -121,6 +121,7 @@ function renderStints(): void {
   };
   const tickVals = [1, Math.round(maxLap * 0.25), Math.round(maxLap * 0.5), Math.round(maxLap * 0.75), maxLap];
   const ticks = tickVals
+    .filter((v) => v >= 1)
     .filter((v, i, arr) => arr.indexOf(v) === i)
     .map((v) => `<span class="tick mono" style="left:${((v - 1) / maxLap) * 100}%">${v}</span>`).join('');
   $('stints').innerHTML = lane(state.a, A) + lane(state.b, B) + `<div class="lane-axis">${ticks}</div>`;
@@ -138,7 +139,6 @@ function renderWeather(): void {
 function colors(): [string, string] {
   return driverColors(driver(state.a).team, driver(state.b).team);
 }
-
 
 function renderTab(tab: string): void {
   const [colA, colB] = colors();
