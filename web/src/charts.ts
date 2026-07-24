@@ -9,7 +9,12 @@ import { baseLayout, FAINT, MUTED, PLOT_CONFIG, compoundColor, hexAlpha } from '
 type El = string; // element id
 
 function react(el: El, traces: Partial<PlotData>[], layout: Partial<Layout>): void {
-  void Plotly.react(el, traces as Data[], layout as Layout, PLOT_CONFIG as Config);
+  void Plotly.react(el, traces as Data[], layout as Layout, PLOT_CONFIG as Config).then(() => {
+    // Plotly occasionally writes `height: 100%` on cold loads, which collapses
+    // inside the min-height-only .chart panel; pin the explicit layout height.
+    const svgc = document.getElementById(el)?.querySelector<HTMLElement>('.svg-container');
+    if (svgc && svgc.style.height === '100%' && layout.height) svgc.style.height = `${layout.height}px`;
+  });
 }
 
 /** Direct driver labels at each trace's right end (identity is never legend-only). */
@@ -94,7 +99,7 @@ export function degradation(el: El, session: SessionData): void {
   react(el, [{
     x: deg.map((d) => d.compound), y: deg.map((d) => d.slope_s_per_lap), type: 'bar',
     marker: { color: deg.map((d) => compoundColor(d.compound)) },
-    text: deg.map((d) => d.slope_s_per_lap.toFixed(3)), textposition: 'outside',
+    text: deg.map((d) => d.slope_s_per_lap.toFixed(3)), textposition: 'outside', cliponaxis: false,
     textfont: { family: "'JetBrains Mono', ui-monospace, monospace", size: 11, color: MUTED },
   }], layout);
 }
