@@ -1,5 +1,9 @@
 # Motorsport Telemetry Analytics
 
+[![CI](https://github.com/Johaan-Mannanal/motorsport-telemetry-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/Johaan-Mannanal/motorsport-telemetry-analytics/actions/workflows/ci.yml)
+[![Made with Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 An interactive dashboard for analyzing Formula 1 telemetry and race performance. Pick a session
 and two drivers, then compare their fastest laps: speed/throttle/brake/gear traces, delta time,
 sector deltas, a track-position map, tyre strategy, weather, and a transparent tyre-degradation
