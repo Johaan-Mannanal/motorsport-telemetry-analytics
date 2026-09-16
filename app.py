@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import warnings
+from datetime import date
 
 warnings.filterwarnings("ignore")
 logging.getLogger("fastf1").setLevel(logging.ERROR)
@@ -55,7 +56,8 @@ def choose_session():
     with st.sidebar.expander("Or load a live session (local only)"):
         st.caption("Needs the F1 data service, which is blocked on the hosted demo. Works locally.")
         use_live = st.checkbox("Use a live session instead")
-        year = st.selectbox("Season", list(range(2024, 2017, -1)), index=1)
+        year = st.selectbox("Season", list(range(date.today().year, 2017, -1)), index=0)
+        st.caption("Recent sessions may take time to become available from the data provider.")
         event = st.text_input("Race (e.g. Monza, Silverstone)", "Monza")
         code = SESSION_CODES[st.selectbox("Session", list(SESSION_CODES), index=5)]
     if use_live:

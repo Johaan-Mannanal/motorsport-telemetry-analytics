@@ -2,7 +2,7 @@
 
 import * as charts from './charts';
 import { loadIndex, loadSession, type DriverData, type SessionData, type SessionRef } from './data';
-import { compoundColor, compoundText, driverColors, hexAlpha } from './theme';
+import { compoundColor, compoundText, driverColors } from './theme';
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -11,14 +11,11 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** Five lights on, hold, lights out — once per page load. */
 async function lightsOut(): Promise<void> {
-  const main = document.querySelector('main')!;
-  if (REDUCED) { main.classList.remove('preload'); return; }
+  if (REDUCED) return;
   const lights = Array.from(document.querySelectorAll('.lights i'));
   for (const l of lights) { l.classList.add('on'); await sleep(180); }
   await sleep(500);
   lights.forEach((l) => l.classList.remove('on'));
-  main.classList.remove('preload');
-  main.classList.add('reveal');
 }
 
 const state = {
@@ -27,8 +24,12 @@ const state = {
   data: null as SessionData | null,
   a: '',
   b: '',
+  tab: 'pace',
+  request: 0,
   renderedTabs: new Set<string>(),
 };
+type HistoryMode = 'push' | 'replace' | 'none';
+let retryAction: () => void = () => { void init(); };
 
 function esc(s: string): string {
   const d = document.createElement('span');
@@ -46,7 +47,9 @@ function driver(code: string): DriverData {
 }
 
 function fmtLap(sec: number | null): string {
-  return sec != null ? `${sec.toFixed(3)}s` : 'n/a';
+  if (sec == null || !Number.isFinite(sec)) return 'n/a';
+  const milliseconds = Math.round(sec * 1000);
+  return `${Math.floor(milliseconds / 60000)}:${((milliseconds % 60000) / 1000).toFixed(3).padStart(6, '0')}`;
 }
 
 function renderMatchup(): void {
@@ -59,6 +62,7 @@ function renderMatchup(): void {
         <span class="abbr">${esc(code)}</span>
         <span class="team">${esc(d.team ?? '')}</span>
         <span class="lap">${fmtLap(d.fastest.sec)}</span>
+        <span class="team">Lap ${d.fastest.lap ?? '–'} · ${esc(d.fastest.compound ?? 'Unknown compound')}</span>
       </span>
     </div>`;
   const fa = A.fastest.sec, fb = B.fastest.sec;
@@ -68,8 +72,8 @@ function renderMatchup(): void {
     const winner = gap > 0 ? state.a : state.b;
     const winCol = gap > 0 ? colA : colB;
     center = `<div class="gap">
-      <span class="gap-v">${gap >= 0 ? '+' : ''}${gap.toFixed(3)}s</span>
-      <span class="gap-sub" style="color:${winCol}">${gap > 0 ? '◀' : '▶'} ${esc(winner)} faster</span>
+      <span class="gap-v">${Math.abs(gap).toFixed(3)}s</span>
+      <span class="gap-sub">${Math.abs(gap) < .0005 ? 'Equal lap time' : `<span aria-hidden="true" style="color:${winCol}">${gap > 0 ? '◀' : '▶'}</span> ${esc(winner)} faster`}</span>
     </div>`;
   }
   $('matchup').innerHTML = chip(state.a, A, colA, 'a') + center + chip(state.b, B, colB, 'b');
@@ -77,33 +81,30 @@ function renderMatchup(): void {
 }
 
 function renderSectors(): void {
-  const [colA, colB] = colors();
   const A = driver(state.a), B = driver(state.b);
   const keys = ['s1', 's2', 's3'] as const;
   const fmt = (v: number | null) => (v != null ? v.toFixed(3) : '–');
   const rows = keys.map((k, i) => {
     const sa = A.fastest.sectors[k], sb = B.fastest.sectors[k];
-    let chip = '', aWin = '', bWin = '';
+    let chip = '–';
     if (sa != null && sb != null) {
       const d = sb - sa;                       // +ve = B slower = A faster (same as the old chart)
-      const col = d > 0 ? colA : colB;         // chip carries the FASTER driver's color
-      aWin = d > 0 ? ` style="box-shadow: inset 3px 0 0 ${colA}"` : '';
-      bWin = d < 0 ? ` style="box-shadow: inset 3px 0 0 ${colB}"` : '';
-      chip = `<span class="t-chip" style="color:${col}; background:${hexAlpha(col, 0.15)}">${d >= 0 ? '+' : ''}${d.toFixed(3)}</span>`;
+      chip = Math.abs(d) < .0005 ? 'Equal' : `${esc(d > 0 ? state.a : state.b)} by ${Math.abs(d).toFixed(3)}`;
     }
-    return `<div class="t-row">
-      <span class="t-k mono">S${i + 1}</span>
-      <span class="t-v mono"${aWin}>${fmt(sa)}</span>
-      <span class="t-v mono"${bWin}>${fmt(sb)}</span>
-      <span class="t-d">${chip}</span>
-    </div>`;
+    return `<tr><th scope="row">S${i + 1}</th><td>${fmt(sa)}</td><td>${fmt(sb)}</td><td>${chip}</td></tr>`;
   }).join('');
-  $('timing').innerHTML = `<div class="t-row t-head">
-    <span class="t-k"></span>
-    <span class="t-v mono">${esc(state.a)}</span>
-    <span class="t-v mono">${esc(state.b)}</span>
-    <span class="t-d"></span>
-  </div>${rows}`;
+  $('timing').innerHTML = `<table aria-label="Sector comparison"><caption>Sector comparison · seconds</caption><thead><tr>
+    <th scope="col">Sector</th><th scope="col">${esc(state.a)}</th><th scope="col">${esc(state.b)}</th><th scope="col">Faster</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderLapData(): void {
+  const a = new Map(driver(state.a).laps.map(l => [l.LapNumber, l.sec]));
+  const b = new Map(driver(state.b).laps.map(l => [l.LapNumber, l.sec]));
+  const laps = [...new Set([...a.keys(), ...b.keys()])].sort((x, y) => x - y);
+  $('lap-data').innerHTML = `<table aria-label="Lap times"><caption>All timed laps, including pit and safety-car laps</caption>
+    <thead><tr><th scope="col">Lap</th><th scope="col">${esc(state.a)}</th><th scope="col">${esc(state.b)}</th></tr></thead>
+    <tbody>${laps.map(l => `<tr><th scope="row">${l}</th><td>${fmtLap(a.get(l) ?? null)}</td><td>${fmtLap(b.get(l) ?? null)}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function renderStints(): void {
@@ -125,6 +126,10 @@ function renderStints(): void {
     .filter((v, i, arr) => arr.indexOf(v) === i)
     .map((v) => `<span class="tick mono" style="left:${((v - 1) / maxLap) * 100}%">${v}</span>`).join('');
   $('stints').innerHTML = lane(state.a, A) + lane(state.b, B) + `<div class="lane-axis">${ticks}</div>`;
+  $('stint-data').innerHTML = `<table aria-label="Tyre stints"><caption>Compounds and recorded lap ranges for each driver</caption>
+    <thead><tr><th scope="col">Driver</th><th scope="col">Compound</th><th scope="col">Laps</th></tr></thead>
+    <tbody>${[state.a, state.b].flatMap(code => driver(code).stints.map(s =>
+      `<tr><th scope="row">${esc(code)}</th><td>${esc(s.Compound)}</td><td>${s.StartLap}–${s.EndLap}</td></tr>`)).join('')}</tbody></table>`;
 }
 
 function renderWeather(): void {
@@ -146,13 +151,20 @@ function renderTab(tab: string): void {
   switch (tab) {
     case 'pace':
       charts.lapPace('chart-pace', A, B, state.a, state.b, colA, colB);
+      renderLapData();
       break;
     case 'telemetry':
-      charts.delta('chart-delta', A, B, state.a, state.b, colB);
-      charts.channel('chart-speed', 'Speed', A, B, state.a, state.b, colA, colB);
-      charts.channel('chart-throttle', 'Throttle', A, B, state.a, state.b, colA, colB);
-      charts.channel('chart-brake', 'Brake', A, B, state.a, state.b, colA, colB);
-      charts.channel('chart-gear', 'nGear', A, B, state.a, state.b, colA, colB);
+      $('telemetry-status').textContent = '';
+      try {
+        charts.delta('chart-delta', A, B, state.a, state.b, colB);
+        charts.channel('chart-speed', 'Speed', A, B, state.a, state.b, colA, colB);
+        charts.channel('chart-throttle', 'Throttle', A, B, state.a, state.b, colA, colB);
+        charts.channel('chart-brake', 'Brake', A, B, state.a, state.b, colA, colB);
+        charts.channel('chart-gear', 'nGear', A, B, state.a, state.b, colA, colB);
+      } catch (err) {
+        ['delta', 'speed', 'throttle', 'brake', 'gear'].forEach(id => charts.clear(`chart-${id}`));
+        $('telemetry-status').textContent = err instanceof Error ? err.message : 'Telemetry unavailable. Choose another comparison.';
+      }
       break;
     case 'track':
       charts.trackMap('chart-track', A, state.a);
@@ -167,6 +179,9 @@ function renderTab(tab: string): void {
       const box = $('model-metrics');
       if (!m) {
         box.innerHTML = '<p class="caption">Not enough green laps in this session to fit the model.</p>';
+        charts.clear('chart-degradation');
+        $('degradation-data').replaceChildren();
+        $('model-notes').replaceChildren();
         break;
       }
       box.innerHTML = ([
@@ -177,6 +192,9 @@ function renderTab(tab: string): void {
       ] as [string, string, string][]).map(([k, v, cls]) =>
         `<div class="stat${cls}"><span class="stat-k">${k}</span><span class="stat-v">${v}</span></div>`).join('');
       charts.degradation('chart-degradation', state.data!);
+      $('degradation-data').innerHTML = `<table aria-label="Degradation evidence"><caption>Tyre-age correlation, not isolated tyre wear. R² near 0 indicates a weak fit.</caption>
+        <thead><tr><th scope="col">Compound</th><th scope="col">s / lap</th><th scope="col">R²</th><th scope="col">Laps</th></tr></thead>
+        <tbody>${m.degradation.map(d => `<tr><th scope="row">${esc(d.compound)}</th><td>${d.slope_s_per_lap.toFixed(3)}</td><td>${d.r_squared.toFixed(2)}</td><td>${d.n_laps}</td></tr>`).join('')}</tbody></table>`;
       $('model-notes').innerHTML = m.notes.map((n) => `<li>${esc(n)}</li>`).join('');
       break;
     }
@@ -184,54 +202,97 @@ function renderTab(tab: string): void {
   state.renderedTabs.add(tab);
 }
 
-function activeTab(): string {
-  return document.querySelector<HTMLButtonElement>('.tab.active')!.dataset.tab!;
+function syncUrl(mode: HistoryMode = 'push'): void {
+  if (mode === 'none') return;
+  const q = new URLSearchParams({ session: state.slug, a: state.a, b: state.b, tab: state.tab });
+  const next = `?${q.toString()}`;
+  if (location.search !== next) history[mode === 'replace' ? 'replaceState' : 'pushState'](null, '', next);
 }
 
-function syncUrl(): void {
-  const q = new URLSearchParams({ session: state.slug, a: state.a, b: state.b });
-  history.replaceState(null, '', `?${q.toString()}`);
+function activateTab(tab: string, mode: HistoryMode = 'push'): void {
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('.tab')];
+  state.tab = buttons.some(b => b.dataset.tab === tab) ? tab : 'pace';
+  buttons.forEach(btn => {
+    const active = btn.dataset.tab === state.tab;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', String(active));
+    btn.tabIndex = active ? 0 : -1;
+    $(`panel-${btn.dataset.tab}`).classList.toggle('hidden', !active);
+  });
+  if (state.data) {
+    if (!state.renderedTabs.has(state.tab)) renderTab(state.tab);
+    charts.resizeVisible();
+    syncUrl(mode);
+  }
+  $('reset-zoom').classList.toggle('hidden', state.tab === 'tyres');
 }
 
-function rerender(): void {
+function syncDrivers(): void {
+  for (const [id, other] of [['driverA', state.b], ['driverB', state.a]]) {
+    [...$(id).querySelectorAll('option')].forEach(option => { option.disabled = option.value === other; });
+  }
+}
+
+function rerender(mode: HistoryMode = 'push'): void {
+  syncDrivers();
   renderMatchup();
   state.renderedTabs.clear();
-  renderTab(activeTab());
-  // Restart the active panel's fade so session/driver switches read as a quiet crossfade.
-  const activePanel = document.querySelector<HTMLElement>('.panel:not(.hidden)');
-  if (activePanel && !REDUCED) {
-    activePanel.style.animation = 'none';
-    void activePanel.offsetHeight;   // reflow to reset the animation
-    activePanel.style.animation = '';
+  activateTab(state.tab, mode);
+}
+
+function busy(loading: boolean): void {
+  $('load-status').textContent = loading ? 'Loading session data…' : '';
+  document.querySelectorAll<HTMLButtonElement | HTMLSelectElement>('#driverA, #driverB, .tab, #reset-zoom')
+    .forEach(el => { el.disabled = loading || !state.data; });
+  $('matchup').setAttribute('aria-busy', String(loading));
+}
+
+function showError(message: string): void {
+  $('error-message').textContent = message;
+  $('load-error').classList.remove('hidden');
+}
+
+async function selectSession(slug: string, a = state.a, b = state.b, tab = state.tab, mode: HistoryMode = 'push'): Promise<void> {
+  const request = ++state.request;
+  busy(true);
+  $('load-error').classList.add('hidden');
+  ($('session') as HTMLSelectElement).value = slug;
+  try {
+    const data = await loadSession(slug);
+    if (request !== state.request) return;
+    const codes = Object.keys(data.drivers).sort();
+    if (codes.length < 2) throw new Error('This session needs at least two drivers.');
+    state.a = codes.includes(a) ? a : codes[0];
+    state.b = codes.includes(b) && b !== state.a ? b : codes.find(c => c !== state.a)!;
+    state.slug = slug;
+    state.data = data;
+    state.tab = tab;
+    options($('driverA'), codes.map(c => ({ value: c, label: c })), state.a);
+    options($('driverB'), codes.map(c => ({ value: c, label: c })), state.b);
+    rerender(mode);
+  } catch (err) {
+    if (request !== state.request) return;
+    retryAction = () => { void selectSession(slug, a, b, tab, mode); };
+    showError(`Could not load this session. ${err instanceof Error ? err.message : 'Try again.'} Retry or choose another session.${state.data ? ' Your previous comparison is still shown.' : ''}`);
+    if (state.data) {
+      ($('session') as HTMLSelectElement).value = state.slug;
+      syncUrl('replace');
+    }
+  } finally {
+    if (request === state.request) busy(false);
   }
-  syncUrl();
 }
 
-async function selectSession(slug: string): Promise<void> {
-  state.slug = slug;
-  state.data = await loadSession(slug);
-  const codes = Object.keys(state.data.drivers).sort();
-  options($('driverA'), codes.map((c) => ({ value: c, label: c })), state.a);
-  options($('driverB'), codes.map((c) => ({ value: c, label: c })), state.b);
-  state.a = ($('driverA') as HTMLSelectElement).value;
-  const selB = $('driverB') as HTMLSelectElement;
-  if (selB.value === state.a && codes.length > 1) selB.value = codes.find((c) => c !== state.a)!;
-  state.b = selB.value;
-  rerender();
-}
-
-async function init(): Promise<void> {
-  state.sessions = await loadIndex();
-  options($('session'), state.sessions.map((s) => ({ value: s.slug, label: s.label })));
-
-  // Shareable URLs: ?session=<slug>&a=<drv>&b=<drv>
+function restoreUrl(mode: HistoryMode): void {
   const q = new URLSearchParams(location.search);
   const wantSlug = q.get('session');
-  state.a = q.get('a') ?? '';
-  state.b = q.get('b') ?? '';
   const initial = state.sessions.find((s) => s.slug === wantSlug)?.slug ?? state.sessions[0].slug;
-  ($('session') as HTMLSelectElement).value = initial;
+  void selectSession(initial, q.get('a') ?? '', q.get('b') ?? '', q.get('tab') ?? 'pace', mode);
+}
 
+function bindEvents(): void {
+  $('retry').addEventListener('click', () => retryAction());
+  $('reset-zoom').addEventListener('click', () => charts.resetVisible());
   $('session').addEventListener('change', (e) => {
     void selectSession((e.target as HTMLSelectElement).value);
   });
@@ -245,23 +306,38 @@ async function init(): Promise<void> {
   });
 
   document.querySelectorAll<HTMLButtonElement>('.tab').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-      btn.classList.add('active');
-      const tab = btn.dataset.tab!;
-      document.querySelectorAll('.panel').forEach((p) => p.classList.add('hidden'));
-      $(`panel-${tab}`).classList.remove('hidden');
-      if (!state.renderedTabs.has(tab)) renderTab(tab);
+    btn.addEventListener('click', () => activateTab(btn.dataset.tab!));
+    btn.addEventListener('keydown', e => {
+      const buttons = [...document.querySelectorAll<HTMLButtonElement>('.tab')];
+      let index = buttons.indexOf(btn);
+      if (e.key === 'ArrowRight') index = (index + 1) % buttons.length;
+      else if (e.key === 'ArrowLeft') index = (index - 1 + buttons.length) % buttons.length;
+      else if (e.key === 'Home') index = 0;
+      else if (e.key === 'End') index = buttons.length - 1;
+      else return;
+      e.preventDefault();
+      buttons[index].focus();
+      activateTab(buttons[index].dataset.tab!);
     });
   });
-
-  const lightsDone = lightsOut();
-  await selectSession(initial);
-  await lightsDone;
+  window.addEventListener('popstate', () => { if (state.sessions.length) restoreUrl('none'); });
 }
 
-void init().catch((err) => {
-  const main = document.querySelector('main')!;
-  main.classList.remove('preload');
-  main.innerHTML = `<p class="caption">Failed to load session data: ${esc(String(err))}</p>`;
-});
+async function init(): Promise<void> {
+  busy(true);
+  $('load-error').classList.add('hidden');
+  try {
+    state.sessions = await loadIndex();
+    if (!state.sessions.length) throw new Error('No bundled sessions are available.');
+    options($('session'), state.sessions.map(s => ({ value: s.slug, label: s.label })));
+    restoreUrl('replace');
+  } catch {
+    busy(false);
+    retryAction = () => { void init(); };
+    showError('Could not load the session list. Check your connection and retry.');
+  }
+}
+
+bindEvents();
+void lightsOut();
+void init();

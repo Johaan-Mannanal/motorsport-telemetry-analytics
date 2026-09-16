@@ -7,7 +7,7 @@ export const PANEL2 = '#171a1f';
 export const GRID = '#23272e';
 export const INK = '#e8eaed';
 export const MUTED = '#98a0a8';
-export const FAINT = '#6a7178';
+export const FAINT = '#929ca7';
 export const ACCENT = '#e10600';
 
 /** Tyre compound colors (single source; used by stint bars and the degradation chart). */
@@ -24,8 +24,8 @@ export function compoundColor(compound: string): string {
 }
 
 /** Text color that stays readable on a compound-colored fill. */
-export function compoundText(compound: string): string {
-  return ['MEDIUM', 'HARD'].includes(compound.toUpperCase()) ? BG : INK;
+export function compoundText(_compound: string): string {
+  return BG;
 }
 
 /** '#rrggbb' + alpha -> 'rgba(...)'. */

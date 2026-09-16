@@ -80,6 +80,23 @@ pytest -q                     # run tests (no network needed)
 The bundled example sessions load instantly. If you enable a **live** session (in the sidebar),
 FastF1 downloads and caches it locally on first use (a few seconds), then reads from the cache.
 
+### Web dashboard development
+
+Requires Node.js 22 or later. From `web/`:
+
+```bash
+npm ci
+npm run dev                 # local Vite preview
+npm test                    # telemetry math and contrast checks
+npx playwright install chromium
+npm run test:e2e            # browser interaction and responsive regressions
+npm run build               # TypeScript check and production bundle
+```
+
+The browser tests use the bundled sessions and simulate failed, delayed, and missing-data
+responses. CI runs both the Python and web suites. Dashboard URLs preserve the session,
+driver pair, and selected tab; chart zoom can be reset without reloading.
+
 ## Data source
 Public F1 timing and telemetry via **FastF1** (official live-timing + Ergast/Jolpica archive),
 covering 2018–present. See [`data/README.md`](data/README.md). Unofficial; not affiliated with

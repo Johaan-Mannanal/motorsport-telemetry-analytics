@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to analysis</a>
   <header class="top">
     <div class="wrap top-inner">
       <div class="brand">
@@ -25,37 +26,46 @@
     </div>
   </header>
 
-  <main class="wrap preload">
+  <main class="wrap" id="main" tabindex="-1">
     <section class="controls" aria-label="Session and driver selection">
       <label>Session
-        <select id="session"></select>
+        <select id="session" name="session"></select>
       </label>
       <label>Driver A
-        <select id="driverA"></select>
+        <select id="driverA" name="driverA" disabled></select>
       </label>
       <label>Driver B
-        <select id="driverB"></select>
+        <select id="driverB" name="driverB" disabled></select>
       </label>
     </section>
+    <p id="load-status" class="caption" role="status">Loading session data…</p>
+    <div id="load-error" class="load-error hidden" role="alert">
+      <p id="error-message"></p><button id="retry" type="button">Retry</button>
+    </div>
 
     <section id="matchup" class="matchup" aria-live="polite"></section>
     <p class="session-sub" id="session-sub"></p>
     <p class="caption demo-note">Five bundled public-demo sessions. The <a href="https://github.com/Johaan-Mannanal/motorsport-telemetry-analytics">local Streamlit app</a> loads any session from 2018 onward.</p>
 
-    <nav class="tabs" role="tablist">
-      <button class="tab active" data-tab="pace" role="tab">Lap pace</button>
-      <button class="tab" data-tab="telemetry" role="tab">Telemetry</button>
-      <button class="tab" data-tab="track" role="tab">Track &amp; sectors</button>
-      <button class="tab" data-tab="tyres" role="tab">Tyres &amp; weather</button>
-      <button class="tab" data-tab="model" role="tab">Pace model</button>
+    <nav class="tabs" role="tablist" aria-label="Analysis views">
+      <button class="tab active" id="tab-pace" aria-controls="panel-pace" aria-selected="true" tabindex="0" data-tab="pace" role="tab" disabled>Lap pace</button>
+      <button class="tab" id="tab-telemetry" aria-controls="panel-telemetry" aria-selected="false" tabindex="-1" data-tab="telemetry" role="tab" disabled>Telemetry</button>
+      <button class="tab" id="tab-track" aria-controls="panel-track" aria-selected="false" tabindex="-1" data-tab="track" role="tab" disabled>Track &amp; sectors</button>
+      <button class="tab" id="tab-tyres" aria-controls="panel-tyres" aria-selected="false" tabindex="-1" data-tab="tyres" role="tab" disabled>Tyres &amp; weather</button>
+      <button class="tab" id="tab-model" aria-controls="panel-model" aria-selected="false" tabindex="-1" data-tab="model" role="tab" disabled>Pace model</button>
     </nav>
+    <div class="chart-actions"><button id="reset-zoom" type="button" disabled>Reset chart zoom</button></div>
 
-    <section class="panel" id="panel-pace" role="tabpanel">
+    <section class="panel" id="panel-pace" role="tabpanel" aria-labelledby="tab-pace" tabindex="0">
+      <h2 class="sr-only">Lap pace</h2>
       <div id="chart-pace" class="chart"></div>
       <p class="caption">Lap time by lap number, all timed laps; pit stops and safety cars appear as spikes.</p>
+      <details class="notes"><summary>View lap data</summary><div id="lap-data" class="table-scroll"></div></details>
     </section>
 
-    <section class="panel hidden" id="panel-telemetry" role="tabpanel">
+    <section class="panel hidden" id="panel-telemetry" role="tabpanel" aria-labelledby="tab-telemetry" tabindex="0">
+      <h2 class="sr-only">Telemetry</h2>
+      <p id="telemetry-status" class="caption" role="status"></p>
       <p class="caption">Each driver's fastest lap, aligned on a shared distance axis. Delta time is integrated from the speed traces, so it is an approximation of the true gap.</p>
       <div id="chart-delta" class="chart"></div>
       <div class="grid2">
@@ -66,7 +76,8 @@
       </div>
     </section>
 
-    <section class="panel hidden" id="panel-track" role="tabpanel">
+    <section class="panel hidden" id="panel-track" role="tabpanel" aria-labelledby="tab-track" tabindex="0">
+      <h2 class="sr-only">Track and sectors</h2>
       <div class="grid-track">
         <div id="chart-track" class="chart"></div>
         <div>
@@ -76,18 +87,20 @@
       </div>
     </section>
 
-    <section class="panel hidden" id="panel-tyres" role="tabpanel">
-      <h3 class="subh">Stints</h3>
+    <section class="panel hidden" id="panel-tyres" role="tabpanel" aria-labelledby="tab-tyres" tabindex="0">
+      <h2 class="subh">Stints</h2>
       <div id="stints" class="stints"></div>
+      <details class="notes"><summary>View stint data</summary><div id="stint-data" class="table-scroll"></div></details>
       <h3 class="subh">Weather (session average)</h3>
       <div id="weather" class="stat-row"></div>
     </section>
 
-    <section class="panel hidden" id="panel-model" role="tabpanel">
-      <h3 class="subh">Tyre degradation &amp; lap-time model</h3>
-      <p class="caption">A transparent baseline comparison on this session's green laps, not a race-strategy oracle.</p>
+    <section class="panel hidden" id="panel-model" role="tabpanel" aria-labelledby="tab-model" tabindex="0">
+      <h2 class="subh">Tyre degradation &amp; lap-time model</h2>
+      <p class="caption">Session-wide model across all drivers, not just this comparison. MAE is the average absolute prediction error in seconds; lower is better.</p>
       <div class="stat-row" id="model-metrics"></div>
       <div id="chart-degradation" class="chart"></div>
+      <div id="degradation-data" class="table-scroll"></div>
       <details class="notes"><summary>Methodology &amp; limitations</summary><ul id="model-notes"></ul></details>
     </section>
   </main>

@@ -9,11 +9,45 @@ import { baseLayout, FAINT, MUTED, PLOT_CONFIG, compoundColor, hexAlpha } from '
 type El = string; // element id
 
 function react(el: El, traces: Partial<PlotData>[], layout: Partial<Layout>): void {
-  void Plotly.react(el, traces as Data[], layout as Layout, PLOT_CONFIG as Config).then(() => {
-    // Plotly occasionally writes `height: 100%` on cold loads, which collapses
-    // inside the min-height-only .chart panel; pin the explicit layout height.
-    const svgc = document.getElementById(el)?.querySelector<HTMLElement>('.svg-container');
-    if (svgc && svgc.style.height === '100%' && layout.height) svgc.style.height = `${layout.height}px`;
+  const element = document.getElementById(el)!;
+  element.style.removeProperty('display');
+  element.style.setProperty('--chart-height', `${layout.height ?? 340}px`);
+  element.setAttribute('role', 'img');
+  element.setAttribute('aria-label', typeof layout.title === 'object' ? layout.title.text ?? 'Telemetry chart' : String(layout.title));
+  // Keep Plotly's measured canvas separate from the card's padding and border.
+  let canvas = element.querySelector<HTMLDivElement>('.chart-canvas');
+  if (!canvas) {
+    canvas = document.createElement('div');
+    canvas.className = 'chart-canvas';
+    element.replaceChildren(canvas);
+  }
+  const target = canvas;
+  void Plotly.react(target, traces as Data[], layout as Layout, PLOT_CONFIG as Config).then(() => {
+    if (target.getClientRects().length) void Plotly.Plots.resize(target);
+  }).catch(() => {
+    element.textContent = 'This chart could not be drawn. Choose another view or reload the page.';
+  });
+}
+
+export function clear(el: El): void {
+  const element = document.getElementById(el)!;
+  const canvas = element.querySelector<HTMLDivElement>('.chart-canvas');
+  if (canvas) Plotly.purge(canvas);
+  element.replaceChildren();
+  element.style.display = 'none';
+}
+
+function visibleCharts(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('.panel:not(.hidden) .js-plotly-plot')];
+}
+
+export function resizeVisible(): void {
+  requestAnimationFrame(() => visibleCharts().forEach(el => { void Plotly.Plots.resize(el); }));
+}
+
+export function resetVisible(): void {
+  visibleCharts().forEach(el => {
+    void Plotly.relayout(el, { 'xaxis.autorange': true, 'yaxis.autorange': true });
   });
 }
 
@@ -62,17 +96,21 @@ export function channel(el: El, ch: Channel, a: DriverData, b: DriverData,
   const grid = commonGrid(a.telemetry, b.telemetry);
   const ya = interpolate(a.telemetry, ch, grid);
   const yb = interpolate(b.telemetry, ch, grid);
-  const layout = baseLayout(`${ch} vs distance`);
+  const labels = { Speed: 'Speed (km/h)', Throttle: 'Throttle (%)', Brake: 'Brake', nGear: 'Gear' };
+  const layout = baseLayout(`${labels[ch]} vs distance`);
   layout.xaxis = { ...layout.xaxis, title: { text: 'Distance (m)' } };
-  layout.yaxis = { ...layout.yaxis, title: { text: ch } };
+  layout.yaxis = { ...layout.yaxis, title: { text: labels[ch] } };
+  if (ch === 'Brake') layout.yaxis = { ...layout.yaxis, tickvals: [0, 1], ticktext: ['Off', 'On'] };
+  if (ch === 'nGear') layout.yaxis = { ...layout.yaxis, dtick: 1 };
+  const shape = ch === 'Brake' || ch === 'nGear' ? 'hv' : 'linear';
   const xEnd = grid[grid.length - 1];
   layout.annotations = endLabels([
     { x: xEnd, y: ya[ya.length - 1], text: nameA, color: colA },
     { x: xEnd, y: yb[yb.length - 1], text: nameB, color: colB },
   ]);
   react(el, [
-    { x: grid, y: ya, name: nameA, mode: 'lines', line: { color: colA, width: 2 } },
-    { x: grid, y: yb, name: nameB, mode: 'lines', line: { color: colB, width: 2 } },
+    { x: grid, y: ya, name: nameA, mode: 'lines', line: { color: colA, width: 2, shape } },
+    { x: grid, y: yb, name: nameB, mode: 'lines', line: { color: colB, width: 2, shape, dash: 'dash' } },
   ], layout);
 }
 
@@ -92,7 +130,7 @@ export function trackMap(el: El, d: DriverData, name: string): void {
 
 export function degradation(el: El, session: SessionData): void {
   const deg = session.model?.degradation ?? [];
-  const layout = baseLayout('Tyre degradation (s lost per lap of tyre life)');
+  const layout = baseLayout('Tyre age vs lap time');
   layout.yaxis = { ...layout.yaxis, title: { text: 's / lap' } };
   layout.hovermode = 'closest';
   layout.xaxis = { ...layout.xaxis, showspikes: false };
